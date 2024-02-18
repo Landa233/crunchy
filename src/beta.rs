@@ -120,3 +120,15 @@ fn main() {
 // recalculate node from grid and index
 // propagate update to neighbors in custom defined way
 // update<Edge>(node_index: [usize;3], grid: &mut Grid) {}
+
+//
+
+trait GridNew {
+    fn update_vertex();
+
+    fn update_edge();
+
+    fn update_face();
+
+    fn update_cube();
+}

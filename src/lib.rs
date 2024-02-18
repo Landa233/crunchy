@@ -7,5 +7,6 @@
 )]
 #![feature(generic_const_exprs, generic_arg_infer)]
 
+pub mod gamma;
 pub mod grid;
 pub mod math_utils;
