@@ -7,8 +7,16 @@ trait FieldData {
     fn rebuild<Marker: LatticeMarker>(node_index: u32, grid: &Lattice<Marker>) -> Self;
 }
 
+impl FieldData for () {
+    fn rebuild<Marker: LatticeMarker>(node_index: u32, grid: &Lattice<Marker>) -> Self {}
+}
+
 struct EdgeConnections {
     vertices: [u32; 2],
+}
+
+trait Energy: FieldData {
+    fn energy(&self) -> f64;
 }
 
 struct VertexConnections {
