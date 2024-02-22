@@ -2,15 +2,16 @@ use rand::Rng;
 
 trait FieldData: Copy + Clone {
     type Marker: LatticeMarker;
-    fn rebuild(node_index: u32, grid: &mut Lattice<Self::Marker>);
+    type IndexType: Copy + Clone;
+    fn rebuild(node_index: Self::IndexType, grid: &mut Lattice<Self::Marker>);
 }
 
 trait UpdateField: FieldData {
-    fn update(node_index: u32, grid: &mut Lattice<Self::Marker>) -> Self;
+    fn update(node_index: Self::IndexType, grid: &mut Lattice<Self::Marker>) -> Self;
 
-    fn set(node_index: u32, grid: &mut Lattice<Self::Marker>, field: Self);
+    fn set(node_index: Self::IndexType, grid: &mut Lattice<Self::Marker>, field: Self);
 
-    fn energy(node_index: u32, grid: &Lattice<Self::Marker>) -> f32;
+    fn energy(node_index: Self::IndexType, grid: &Lattice<Self::Marker>) -> f32;
 }
 
 struct Node<GraphConnections, Field: FieldData> {
@@ -52,6 +53,7 @@ struct Edgy {}
 
 impl FieldData for Verty {
     type Marker = MyLattice;
+    type IndexType = u32;
 
     fn rebuild(node_index: u32, grid: &mut Lattice<Self::Marker>) {}
 }
@@ -78,6 +80,7 @@ impl UpdateField for Verty {
 
 impl FieldData for Edgy {
     type Marker = MyLattice;
+    type IndexType = u32;
 
     fn rebuild(node_index: u32, grid: &mut Lattice<Self::Marker>) {}
 }
@@ -88,8 +91,11 @@ struct Simulation<Marker: LatticeMarker> {
 }
 
 impl<LMarker: LatticeMarker> Simulation<LMarker> {
-    fn metropolis_step<Field: UpdateField>(&mut self, new_field: Field, node_index: u32)
-    where
+    fn metropolis_step<Field: UpdateField>(
+        &mut self,
+        new_field: Field,
+        node_index: <Field as FieldData>::IndexType,
+    ) where
         Field: FieldData<Marker = LMarker>,
     {
         let old_energy = Field::energy(node_index, &self.lattice);
