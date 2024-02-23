@@ -12,6 +12,8 @@ trait UpdateField: FieldData {
     fn set(node_index: Self::IndexType, grid: &mut Lattice<Self::Marker>, field: Self);
 
     fn energy(node_index: Self::IndexType, grid: &Lattice<Self::Marker>) -> f32;
+
+    fn init() -> impl Initializer<Self>;
 }
 
 struct Node<GraphConnections, Field: FieldData> {
@@ -76,6 +78,10 @@ impl UpdateField for Verty {
     fn energy(node_index: u32, grid: &Lattice<Self::Marker>) -> f32 {
         todo!()
     }
+
+    fn init() -> impl Initializer<Self> {
+        |x: u32| Verty {} // idk why todo!() doesn't work here
+    }
 }
 
 impl FieldData for Edgy {
@@ -120,5 +126,27 @@ impl<LMarker: LatticeMarker> Simulation<LMarker> {
 
         Field::set(node_index, &mut self.lattice, old_field);
         Field::update(node_index, &mut self.lattice);
+    }
+}
+
+fn foo<F, Field>(f: F)
+where
+    Field: FieldData,
+    F: FnMut(<Field as FieldData>::IndexType) -> Field,
+{
+    // Function body
+    todo!()
+}
+
+trait Initializer<Field: FieldData> {
+    fn init(&mut self, index: <Field as FieldData>::IndexType) -> Field;
+}
+
+impl<Field: FieldData, F> Initializer<Field> for F
+where
+    F: FnMut(<Field as FieldData>::IndexType) -> Field,
+{
+    fn init(&mut self, index: <Field as FieldData>::IndexType) -> Field {
+        self(index)
     }
 }
