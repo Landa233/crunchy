@@ -6,10 +6,6 @@
     incomplete_features
 )]
 #![feature(generic_const_exprs, generic_arg_infer)]
-
-pub mod delta;
-pub mod eta;
-pub mod gamma;
-pub mod grid;
+pub mod crarray;
+pub mod lattice;
 pub mod math_utils;
-pub mod nu;

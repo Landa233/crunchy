@@ -1,6 +1,6 @@
 use rand::Rng;
 
-trait FieldData: Copy + Clone {
+trait FieldData: Copy + Clone + Default {
     type Marker: LatticeMarker;
     type IndexType: Copy + Clone;
     fn rebuild(node_index: Self::IndexType, grid: &mut Lattice<Self::Marker>);
@@ -35,6 +35,10 @@ type EdgeNode<Field> = Node<EdgeConnections, Field>;
 trait LatticeMarker {
     type VertexData: FieldData;
     type EdgeData: FieldData;
+
+    fn initialize_grid(grid: &mut Lattice<Self>)
+    where
+        Self: Sized;
 }
 
 struct Lattice<Marker: LatticeMarker> {
@@ -42,15 +46,33 @@ struct Lattice<Marker: LatticeMarker> {
     edges: Vec<EdgeNode<<Marker as LatticeMarker>::EdgeData>>,
 }
 
+impl<Marker: LatticeMarker> Lattice<Marker> {
+    fn new() -> Self {
+        // Replace this with calling the default method of the individual fields
+        let mut vertices = Vec::new();
+        let mut edges = Vec::new();
+
+        let mut res = Self { vertices, edges };
+
+        Marker::initialize_grid(&mut res);
+
+        res
+    }
+}
+
 struct MyLattice {}
 impl LatticeMarker for MyLattice {
     type VertexData = Verty;
     type EdgeData = Edgy;
+
+    fn initialize_grid(grid: &mut Lattice<Self>) {
+        todo!()
+    }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 struct Verty {}
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 struct Edgy {}
 
 impl FieldData for Verty {
@@ -127,15 +149,6 @@ impl<LMarker: LatticeMarker> Simulation<LMarker> {
         Field::set(node_index, &mut self.lattice, old_field);
         Field::update(node_index, &mut self.lattice);
     }
-}
-
-fn foo<F, Field>(f: F)
-where
-    Field: FieldData,
-    F: FnMut(<Field as FieldData>::IndexType) -> Field,
-{
-    // Function body
-    todo!()
 }
 
 trait Initializer<Field: FieldData> {
