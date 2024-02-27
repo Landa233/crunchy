@@ -6,21 +6,21 @@ use std::{
 use super::shape::{Shape, ShapeIterator};
 
 #[derive(Debug)]
-pub struct NDArray<const NDIM: usize, T> {
+pub struct CRArray<const NDIM: usize, T> {
     shape: Shape<NDIM>,
     flat_data: Vec<T>,
 }
 
-impl<const NDIM: usize, T> NDArray<NDIM, T> {
+impl<const NDIM: usize, T> CRArray<NDIM, T> {
     pub fn shape(&self) -> Shape<NDIM> {
         self.shape
     }
 
-    pub fn zeros(shape: Shape<NDIM>) -> NDArray<NDIM, T>
+    pub fn zeros(shape: Shape<NDIM>) -> CRArray<NDIM, T>
     where
         T: Default + Clone,
     {
-        return NDArray {
+        return CRArray {
             shape,
             flat_data: vec![T::default(); shape.size()],
         };
@@ -41,7 +41,7 @@ impl<const NDIM: usize, T> NDArray<NDIM, T> {
     }
 }
 
-impl<const NDIM: usize, T> Index<[usize; NDIM]> for NDArray<NDIM, T> {
+impl<const NDIM: usize, T> Index<[usize; NDIM]> for CRArray<NDIM, T> {
     type Output = T;
 
     fn index(&self, index: [usize; NDIM]) -> &Self::Output {
@@ -49,13 +49,13 @@ impl<const NDIM: usize, T> Index<[usize; NDIM]> for NDArray<NDIM, T> {
     }
 }
 
-impl<const NDIM: usize, T> IndexMut<[usize; NDIM]> for NDArray<NDIM, T> {
+impl<const NDIM: usize, T> IndexMut<[usize; NDIM]> for CRArray<NDIM, T> {
     fn index_mut(&mut self, index: [usize; NDIM]) -> &mut Self::Output {
         &mut self.flat_data[self.shape.index_to_flat(index)]
     }
 }
 
-impl<const NDIM: usize, T> Deref for NDArray<NDIM, T> {
+impl<const NDIM: usize, T> Deref for CRArray<NDIM, T> {
     type Target = [T];
 
     fn deref(&self) -> &Self::Target {
@@ -64,7 +64,7 @@ impl<const NDIM: usize, T> Deref for NDArray<NDIM, T> {
 }
 
 pub struct ArrayIterator<'a, T, const NDIM: usize> {
-    array: &'a NDArray<NDIM, T>,
+    array: &'a CRArray<NDIM, T>,
     shape_iterator: ShapeIterator<NDIM>,
 }
 
@@ -81,7 +81,7 @@ impl<'a, T, const NDIM: usize> Iterator for ArrayIterator<'a, T, NDIM> {
 }
 
 pub struct ArrayIteratorMut<'a, T, const NDIM: usize> {
-    array: &'a mut NDArray<NDIM, T>,
+    array: &'a mut CRArray<NDIM, T>,
     shape_iterator: ShapeIterator<NDIM>,
 }
 
