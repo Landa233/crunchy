@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{
     mem,
     ops::{Deref, Index, IndexMut},
@@ -98,5 +99,16 @@ impl<'a, T, const NDIM: usize> Iterator for ArrayIteratorMut<'a, T, NDIM> {
             },
             None => None,
         }
+    }
+}
+
+impl<const NDIM: usize, T: fmt::Display> fmt::Display for CRArray<NDIM, T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for index in self.shape.iter() {
+            writeln!(f, "------------------------------------------------------------------------------------------")?;
+            writeln!(f, "Index: {:?}", index)?;
+            write!(f, "{} ", self[index])?;
+        }
+        Ok(())
     }
 }

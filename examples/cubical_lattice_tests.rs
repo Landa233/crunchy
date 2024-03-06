@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crunchy::{
     crarray::shape::Shape,
     lattice::lattice::{Field, Lattice, LatticeTypes},
@@ -10,6 +12,12 @@ struct Empty {}
 
 impl Field for Empty {}
 
+impl fmt::Display for Empty {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Empty")
+    }
+}
+
 impl LatticeTypes for TestLattice {
     type VertexType = Empty;
     type EdgeType = Empty;
@@ -18,7 +26,9 @@ impl LatticeTypes for TestLattice {
 }
 
 fn main() {
-    let shape = Shape::new([3, 3]);
+    let shape = Shape::new([2, 2, 2, 2]);
 
-    let lattice = Lattice::<2, TestLattice>::new(shape);
+    let lattice = Lattice::<4, TestLattice>::new(shape);
+
+    println!("{}", lattice.cubes);
 }
