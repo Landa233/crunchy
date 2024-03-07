@@ -107,7 +107,7 @@ impl<const NDIM: usize, T: fmt::Display> fmt::Display for CRArray<NDIM, T> {
         for index in self.shape.iter() {
             writeln!(f, "------------------------------------------------------------------------------------------")?;
             writeln!(f, "Index: {:?}", index)?;
-            write!(f, "{} ", self[index])?;
+            write!(f, "{}", self[index])?;
         }
         Ok(())
     }

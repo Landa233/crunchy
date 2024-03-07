@@ -26,9 +26,9 @@ impl LatticeTypes for TestLattice {
 }
 
 fn main() {
-    let shape = Shape::new([2, 2, 2, 2]);
+    let shape = Shape::new([2, 2, 2]);
 
-    let lattice = Lattice::<4, TestLattice>::new(shape);
+    let lattice = Lattice::<3, TestLattice>::new(shape);
 
-    println!("{}", lattice.cubes);
+    println!("{}", lattice.vertices);
 }

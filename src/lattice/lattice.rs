@@ -28,7 +28,7 @@ impl<GraphConnections: Default + fmt::Display, FieldType: Field + fmt::Display> 
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
             f,
-            "\nConnections: \n{}\n\nData:\n{} \n",
+            "\nConnections: \n{}\n\nData:\n{}\n",
             self.graph_connections, self.data
         )?;
 
@@ -45,11 +45,11 @@ pub struct VertexConnections<const NDIM: usize>
 where
     [(); NDIM + 1]:,
     [(); NDIM * 2]:,
-    [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
     [(); 8 * binomial_coefficient(NDIM, 3)]:,
 {
     edges: [[usize; NDIM + 1]; NDIM * 2],
-    faces: [[usize; NDIM + 1]; 2 * (NDIM - 1)],
+    faces: [[usize; NDIM + 1]; 4 * binomial_coefficient(NDIM, 2)],
     cubes: [[usize; NDIM + 1]; 8 * binomial_coefficient(NDIM, 3)],
 }
 
@@ -57,7 +57,7 @@ impl<const NDIM: usize> Default for VertexConnections<NDIM>
 where
     [(); NDIM + 1]:,
     [(); NDIM * 2]:,
-    [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
     [(); 8 * binomial_coefficient(NDIM, 3)]:,
 {
     fn default() -> Self {
@@ -73,7 +73,7 @@ impl<const NDIM: usize> fmt::Display for VertexConnections<NDIM>
 where
     [(); NDIM + 1]:,
     [(); NDIM * 2]:,
-    [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
     [(); 8 * binomial_coefficient(NDIM, 3)]:,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -89,18 +89,18 @@ where
 pub struct EdgeConnections<const NDIM: usize>
 where
     [(); NDIM + 1]:,
-    [(); 2 * binomial_coefficient(NDIM, 2)]:,
+    [(); 2 * (NDIM - 1)]:,
     [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
 {
     vertices: [[usize; NDIM + 1]; 2],
-    faces: [[usize; NDIM + 1]; 2 * binomial_coefficient(NDIM, 2)],
+    faces: [[usize; NDIM + 1]; 2 * (NDIM - 1)],
     cubes: [[usize; NDIM + 1]; 4 * binomial_coefficient(NDIM - 1, 2)],
 }
 
 impl<const NDIM: usize> Default for EdgeConnections<NDIM>
 where
     [(); NDIM + 1]:,
-    [(); 2 * binomial_coefficient(NDIM, 2)]:,
+    [(); 2 * (NDIM - 1)]:,
     [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
 {
     fn default() -> Self {
@@ -109,6 +109,21 @@ where
             faces: my_default(),
             cubes: my_default(),
         }
+    }
+}
+
+impl<const NDIM: usize> fmt::Display for EdgeConnections<NDIM>
+where
+    [(); NDIM + 1]:,
+    [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Vertices: {:?}", self.vertices)?;
+        writeln!(f, "Faces: {:?}", self.faces)?;
+        write!(f, "Cubes: {:?}", self.cubes)?;
+
+        Ok(())
     }
 }
 
@@ -134,6 +149,20 @@ where
             edges: my_default(),
             cubes: my_default(),
         }
+    }
+}
+
+impl<const NDIM: usize> fmt::Display for FaceConnections<NDIM>
+where
+    [(); NDIM + 1]:,
+    [(); 2 * (NDIM - 2)]:,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Vertices: {:?}", self.vertices)?;
+        writeln!(f, "Edges: {:?}", self.edges)?;
+        write!(f, "Cubes: {:?}", self.cubes)?;
+
+        Ok(())
     }
 }
 
@@ -183,10 +212,9 @@ where
     [(); NDIM + 1]:,
     [(); NDIM * 2]:,
     [(); 2 * (NDIM - 1)]:,
-    [(); 2 * binomial_coefficient(NDIM, 2)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
     [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
     [(); 2 * (NDIM - 2)]:,
-
     [(); 8 * binomial_coefficient(NDIM, 3)]:,
 {
     shape: Shape<NDIM>,
@@ -202,10 +230,10 @@ where
     [(); NDIM + 1]:,
     [(); NDIM * 2]:,
     [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
     [(); 2 * binomial_coefficient(NDIM, 2)]:,
     [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
     [(); 2 * (NDIM - 2)]:,
-    [(); binomial_coefficient(NDIM, 3)]:,
     [(); 8 * binomial_coefficient(NDIM, 3)]:,
 {
     pub fn new(shape: Shape<NDIM>) -> Self {
@@ -223,6 +251,8 @@ where
         };
 
         res.initialize_cubes();
+        res.initialize_faces();
+        res.initialize_edges();
 
         res
     }
@@ -264,8 +294,9 @@ where
         let mut cubes_to_faces: CRArray<{ NDIM + 1 }, Vec<[usize; NDIM + 1]>> =
             CRArray::zeros(self.faces.shape());
 
+        // --------------------------------------------------------
         // CUBES <-> FACES
-
+        // --------------------------------------------------------
         for index in cube_shape.iter() {
             let cube_dirs = cube_planes[index[0]];
             let e_1 = standard_basis[cube_dirs[0]];
@@ -307,8 +338,8 @@ where
         }
 
         // --------------------------------------------------------
-
         // CUBES <-> EDGES
+        // --------------------------------------------------------
 
         let mut cube_to_edges: CRArray<{ NDIM + 1 }, Vec<[usize; NDIM + 1]>> =
             CRArray::zeros(self.edges.shape());
@@ -345,7 +376,6 @@ where
         // --------------------------------------------------------
         // CUBES <-> VERTICES
         // --------------------------------------------------------
-
         let mut cube_to_vertices: CRArray<{ NDIM + 1 }, Vec<[usize; NDIM + 1]>> =
             CRArray::zeros(self.vertices.shape());
 
@@ -379,6 +409,131 @@ where
             self.vertices[index].graph_connections.cubes =
                 cube_to_vertices[index].clone().try_into().unwrap();
         }
+    }
+
+    fn initialize_faces(&mut self) {
+        let face_shape = self.faces.shape();
+
+        let standard_basis = Self::standard_basis();
+
+        let face_planes = Self::face_planes();
+
+        let grid_dim = self.shape.dim;
+
+        // --------------------------------------------------------
+        // FACES <-> EDGES
+        // --------------------------------------------------------
+        let mut faces_to_edges: CRArray<{ NDIM + 1 }, Vec<[usize; NDIM + 1]>> =
+            CRArray::zeros(self.edges.shape());
+
+        for index in face_shape.iter() {
+            let face_dirs = face_planes[index[0]];
+            let e_1 = standard_basis[face_dirs[0]];
+            let e_2 = standard_basis[face_dirs[1]];
+
+            let anchor: Ind<NDIM> = Ind::new(index[1..].try_into().unwrap());
+
+            let mut edges: Vec<[usize; NDIM + 1]> = vec![];
+
+            edges.push(*((anchor + e_1.1) % grid_dim).prepend(e_2.0));
+            edges.push(*((anchor).prepend(e_2.0)));
+
+            edges.push(*((anchor).prepend(e_1.0)));
+            edges.push(*((anchor + e_2.1) % grid_dim).prepend(e_1.0));
+
+            for edge in edges.iter() {
+                faces_to_edges[*edge].push(index);
+            }
+
+            self.faces[index].graph_connections.edges = edges.try_into().unwrap();
+        }
+
+        for index in self.edges.shape().iter() {
+            self.edges[index].graph_connections.faces =
+                faces_to_edges[index].clone().try_into().unwrap();
+        }
+
+        // --------------------------------------------------------
+        // FACES <-> VERTICES
+        // --------------------------------------------------------
+        let mut faces_to_vertices: CRArray<{ NDIM + 1 }, Vec<[usize; NDIM + 1]>> =
+            CRArray::zeros(self.vertices.shape());
+
+        for index in face_shape.iter() {
+            let face_dirs = face_planes[index[0]];
+            let e_1 = standard_basis[face_dirs[0]];
+            let e_2 = standard_basis[face_dirs[1]];
+
+            let anchor: Ind<NDIM> = Ind::new(index[1..].try_into().unwrap());
+
+            let mut vertices: Vec<[usize; NDIM + 1]> = vec![];
+
+            vertices.push(*anchor.prepend(0));
+            vertices.push(*((anchor + e_1.1) % grid_dim).prepend(0));
+            vertices.push(*((anchor + e_1.1 + e_2.1) % grid_dim).prepend(0));
+            vertices.push(*((anchor + e_2.1) % grid_dim).prepend(0));
+
+            for vertex in vertices.iter() {
+                faces_to_vertices[*vertex].push(index);
+            }
+
+            self.faces[index].graph_connections.vertices = vertices.try_into().unwrap();
+        }
+
+        for index in self.vertices.shape().iter() {
+            self.vertices[index].graph_connections.faces =
+                faces_to_vertices[index].clone().try_into().unwrap();
+        }
+    }
+
+    fn initialize_edges(&mut self) {
+        let edge_shape = self.edges.shape();
+
+        let standard_basis = Self::standard_basis();
+
+        let grid_dim = self.shape.dim;
+
+        // --------------------------------------------------------
+        // EDGES <-> VERTICES
+        // --------------------------------------------------------
+        let mut edges_to_vertices: CRArray<{ NDIM + 1 }, Vec<[usize; NDIM + 1]>> =
+            CRArray::zeros(self.vertices.shape());
+
+        for index in edge_shape.iter() {
+            let anchor: Ind<NDIM> = Ind::new(index[1..].try_into().unwrap());
+
+            let mut vertices: Vec<[usize; NDIM + 1]> = vec![];
+
+            let v = standard_basis[index[0]].1;
+
+            vertices.push(*anchor.prepend(0));
+            vertices.push(*((anchor + v) % grid_dim).prepend(0));
+
+            for vertex in vertices.iter() {
+                edges_to_vertices[*vertex].push(index);
+            }
+
+            self.edges[index].graph_connections.vertices = vertices.try_into().unwrap();
+        }
+
+        for index in self.vertices.shape().iter() {
+            self.vertices[index].graph_connections.edges =
+                edges_to_vertices[index].clone().try_into().unwrap();
+        }
+    }
+
+    fn face_planes() -> [[usize; 2]; binomial_coefficient(NDIM, 2)] {
+        let mut res = [[0; 2]; binomial_coefficient(NDIM, 2)];
+
+        let mut counter = 0;
+        for i in 0..NDIM {
+            for j in (i + 1)..NDIM {
+                res[counter] = [i, j];
+                counter += 1;
+            }
+        }
+
+        res
     }
 
     fn plaquette_plane(i: usize, j: usize) -> usize {
