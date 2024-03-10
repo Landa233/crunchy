@@ -8,13 +8,93 @@ use crate::{
 };
 
 pub trait LatticeTypes {
+    const NDIM: usize;
+
     type VertexType: Field;
     type EdgeType: Field;
     type FaceType: Field;
     type CubeType: Field;
 }
 
-pub trait Field: Debug + Copy + Clone + Default + fmt::Display {}
+pub trait Field: Debug + Copy + Clone + Default + fmt::Display {
+    type LatticeMarker: LatticeTypes;
+
+    fn rebuild(
+        node_index: [usize; <Self::LatticeMarker as LatticeTypes>::NDIM + 1],
+        grid: &mut Lattice<{ <Self::LatticeMarker as LatticeTypes>::NDIM }, Self::LatticeMarker>,
+    ) where
+        [(); <Self::LatticeMarker as LatticeTypes>::NDIM + 1]:,
+        [(); <Self::LatticeMarker as LatticeTypes>::NDIM * 2]:,
+        [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 1)]:,
+        [(); 4 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 2)]:,
+        [(); 4 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM - 1, 2)]:,
+        [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 2)]:,
+        [(); 8 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 3)]:;
+}
+
+pub trait UpdateField: Field {
+    fn update(
+        node_index: [usize; <Self::LatticeMarker as LatticeTypes>::NDIM + 1],
+        grid: &mut Lattice<{ <Self::LatticeMarker as LatticeTypes>::NDIM }, Self::LatticeMarker>,
+    ) -> Self
+    where
+        [(); <Self::LatticeMarker as LatticeTypes>::NDIM + 1]:,
+        [(); <Self::LatticeMarker as LatticeTypes>::NDIM * 2]:,
+        [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 1)]:,
+        [(); 4 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 2)]:,
+        [(); 4 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM - 1, 2)]:,
+        [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 2)]:,
+        [(); 8 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 3)]:;
+
+    fn set(
+        node_index: [usize; <Self::LatticeMarker as LatticeTypes>::NDIM + 1],
+        grid: &mut Lattice<{ <Self::LatticeMarker as LatticeTypes>::NDIM }, Self::LatticeMarker>,
+        field: Self,
+    ) where
+        [(); <Self::LatticeMarker as LatticeTypes>::NDIM + 1]:,
+        [(); <Self::LatticeMarker as LatticeTypes>::NDIM * 2]:,
+        [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 1)]:,
+        [(); 4 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 2)]:,
+        [(); 4 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM - 1, 2)]:,
+        [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 2)]:,
+        [(); 8 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 3)]:;
+
+    fn energy(
+        node_index: [usize; <Self::LatticeMarker as LatticeTypes>::NDIM + 1],
+        grid: &mut Lattice<{ <Self::LatticeMarker as LatticeTypes>::NDIM }, Self::LatticeMarker>,
+    ) -> f32
+    where
+        [(); <Self::LatticeMarker as LatticeTypes>::NDIM + 1]:,
+        [(); <Self::LatticeMarker as LatticeTypes>::NDIM * 2]:,
+        [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 1)]:,
+        [(); 4 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 2)]:,
+        [(); 4 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM - 1, 2)]:,
+        [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 2)]:,
+        [(); 8 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 3)]:;
+
+    fn init() -> impl Initializer<Self>
+    where
+        [(); <Self::LatticeMarker as LatticeTypes>::NDIM + 1]:;
+}
+
+trait Initializer<FieldType: Field> {
+    fn init(
+        &mut self,
+        index: [usize; <<FieldType as Field>::LatticeMarker as LatticeTypes>::NDIM + 1],
+    ) -> FieldType;
+}
+
+impl<FieldType: Field, F> Initializer<FieldType> for F
+where
+    F: FnMut([usize; <<FieldType as Field>::LatticeMarker as LatticeTypes>::NDIM + 1]) -> FieldType,
+{
+    fn init(
+        &mut self,
+        index: [usize; <<FieldType as Field>::LatticeMarker as LatticeTypes>::NDIM + 1],
+    ) -> FieldType {
+        self(index)
+    }
+}
 
 #[derive(Debug, Copy, Clone, Default)]
 pub struct Node<GraphConnections: Default, FieldType: Field> {
@@ -237,7 +317,10 @@ where
     [(); 8 * binomial_coefficient(NDIM, 3)]:,
 {
     pub fn new(shape: Shape<NDIM>) -> Self {
-        let vertices = CRArray::zeros(Shape::prepend(1, shape));
+        let vertices: CRArray<
+            _,
+            Node<VertexConnections<NDIM>, <LTTypes as LatticeTypes>::VertexType>,
+        > = CRArray::zeros(Shape::prepend(1, shape));
         let edges = CRArray::zeros(Shape::prepend(NDIM, shape));
         let faces = CRArray::zeros(Shape::prepend(binomial_coefficient(NDIM, 2), shape));
         let cubes = CRArray::zeros(Shape::prepend(binomial_coefficient(NDIM, 3), shape));

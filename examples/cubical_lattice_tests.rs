@@ -10,7 +10,18 @@ struct TestLattice {}
 #[derive(Debug, Copy, Clone, Default)]
 struct Empty {}
 
-impl Field for Empty {}
+const LATTICEDIM: usize = 3;
+
+impl Field for Empty {
+    type LatticeMarker = TestLattice;
+
+    fn rebuild(
+        node_index: [usize; LATTICEDIM + 1],
+        grid: &mut Lattice<LATTICEDIM, Self::LatticeMarker>,
+    ) {
+        todo!()
+    }
+}
 
 impl fmt::Display for Empty {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -19,6 +30,8 @@ impl fmt::Display for Empty {
 }
 
 impl LatticeTypes for TestLattice {
+    const NDIM: usize = LATTICEDIM;
+
     type VertexType = Empty;
     type EdgeType = Empty;
     type FaceType = Empty;
