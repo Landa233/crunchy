@@ -9,6 +9,8 @@ use crate::{
     math_utils::binomial_coefficient,
 };
 
+pub trait SimParameter: Copy + Clone {}
+
 pub trait LatticeTypes {
     const NDIM: usize;
 
@@ -16,6 +18,8 @@ pub trait LatticeTypes {
     type EdgeType: Field;
     type FaceType: Field;
     type CubeType: Field;
+
+    type SimParameterType: SimParameter;
 }
 
 pub trait Field: Debug + Copy + Clone + Default + fmt::Display {
@@ -343,6 +347,8 @@ where
     pub edges: CRArray<{ NDIM + 1 }, EdgeNode<NDIM, <LTTypes as LatticeTypes>::EdgeType>>,
     pub faces: CRArray<{ NDIM + 1 }, FaceNode<NDIM, <LTTypes as LatticeTypes>::FaceType>>,
     pub cubes: CRArray<{ NDIM + 1 }, CubeNode<NDIM, <LTTypes as LatticeTypes>::CubeType>>,
+
+    pub sim_parameters: LTTypes::SimParameterType,
 }
 
 impl<const NDIM: usize, LTTypes: LatticeTypes> Lattice<NDIM, LTTypes>
@@ -356,7 +362,7 @@ where
     [(); 2 * (NDIM - 2)]:,
     [(); 8 * binomial_coefficient(NDIM, 3)]:,
 {
-    pub fn new(shape: Shape<NDIM>) -> Self {
+    pub fn new(shape: Shape<NDIM>, sim_parameters: LTTypes::SimParameterType) -> Self {
         let vertices: CRArray<
             _,
             Node<VertexConnections<NDIM>, <LTTypes as LatticeTypes>::VertexType>,
@@ -371,6 +377,7 @@ where
             edges,
             faces,
             cubes,
+            sim_parameters,
         };
 
         if NDIM > 2 {

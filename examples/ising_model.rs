@@ -2,7 +2,7 @@ use std::fmt;
 
 use crunchy::{
     crarray::shape::Shape,
-    lattice::lattice::{Field, Lattice, LatticeTypes, UpdateField},
+    lattice::lattice::{Field, Lattice, LatticeTypes, SimParameter, UpdateField},
 };
 
 #[derive(Debug, Copy, Clone, Default)]
@@ -82,6 +82,13 @@ impl UpdateField for Spin {
 
 struct SpinLattice {}
 
+#[derive(Debug, Copy, Clone, Default)]
+struct IsingParameters {
+    temperature: f32,
+}
+
+impl SimParameter for IsingParameters {}
+
 impl LatticeTypes for SpinLattice {
     const NDIM: usize = 2;
 
@@ -89,12 +96,16 @@ impl LatticeTypes for SpinLattice {
     type EdgeType = Empty;
     type FaceType = Empty;
     type CubeType = Empty;
+
+    type SimParameterType = IsingParameters;
 }
 
 fn main() {
     let shape = Shape::new([2, 2]);
 
-    let mut lattice = Lattice::<2, SpinLattice>::new(shape);
+    let sim_params = IsingParameters { temperature: 1.0 };
+
+    let mut lattice = Lattice::<2, SpinLattice>::new(shape, sim_params);
 
     let mut f = Spin::init();
 
