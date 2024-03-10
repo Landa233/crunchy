@@ -10,6 +10,12 @@ struct TestLattice {}
 #[derive(Debug, Copy, Clone, Default)]
 struct Empty {}
 
+impl fmt::Display for Empty {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Empty")
+    }
+}
+
 const LATTICEDIM: usize = 3;
 
 impl Field for Empty {
@@ -20,12 +26,6 @@ impl Field for Empty {
         grid: &mut Lattice<LATTICEDIM, Self::LatticeMarker>,
     ) {
         todo!()
-    }
-}
-
-impl fmt::Display for Empty {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Empty")
     }
 }
 
