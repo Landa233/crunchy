@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mpl_scatter_density
 
-from z_n_gauge.data_analysis.plot_times_series import plot_region
+from data_analysis.plot_times_series import plot_region
 
 # from data_analysis.python_scripts.plot_times_series import draw_times_series, plot_region, plot_selected_ts
 
@@ -14,13 +14,13 @@ from z_n_gauge.data_analysis.plot_times_series import plot_region
 # data = np.load('data_analysis/temp/transfer_zip.npz')
 
 
-load_data_flag = True
+load_data_flag = False
 
 if not load_data_flag:
     print("Producing data from scratch")
     print("Loading data")
 
-    data = np.load('data_analysis/archiv/z_7_20000it.npz')
+    data = np.load('data_analysis/temp/transfer_zip.npz')
 
     raw_data = data["loops"]
     meta_data = data["meta_data"]
@@ -65,7 +65,7 @@ if not load_data_flag:
 
 else:
     print("Loading data from file")
-    arrays = np.load('data_analysis/temp/arrays.npz')
+    arrays = np.load('data_analysis/temp/transfer_zip.npz')
     tin_data = arrays['tin_data']
     david_data = arrays['david_data']
     time_series = arrays['time_series']
@@ -73,86 +73,90 @@ else:
 
 z_order = 7
 
-outliers = []
-for (i, beta) in enumerate(betas):
-    if abs(tin_data[i] - david_data[i]) > 0.12:
-        outliers.append(i)
-outliers_betas = [betas[i] for i in outliers]
-outliers_tin_data = [tin_data[i] for i in outliers]
-max_outlier = min(5, len(outliers))
+plt.plot(betas, tin_data, 'go', label="Tin", )
+plt.plot(betas, david_data, 'bo', label="David", )
+plt.show()
 
-outliers_left = outliers[0]
-outliers_right = outliers[-1]
+# outliers = []
+# for (i, beta) in enumerate(betas):
+#     if abs(tin_data[i] - david_data[i]) > 0.12:
+#         outliers.append(i)
+# outliers_betas = [betas[i] for i in outliers]
+# outliers_tin_data = [tin_data[i] for i in outliers]
+# max_outlier = min(5, len(outliers))
 
-all_indices = range(len(betas))
-regions = []
-regions.append(all_indices[0:outliers_left])
-regions.append(all_indices[outliers_left: outliers_right+2])
-regions.append(all_indices[outliers_right+2:])
-for (i, region) in enumerate(regions):
-    plot_region(outliers, max_outlier, betas, tin_data,
-                david_data, time_series, z_order, region, f"region{i+1}")
+# outliers_left = outliers[0]
+# outliers_right = outliers[-1]
 
-
-white_viridis = LinearSegmentedColormap.from_list('white_viridis', [
-    (0, '#ffffff'),
-    (1e-20, '#440053'),
-    (0.2, '#404388'),
-    (0.4, '#2a788e'),
-    (0.6, '#21a784'),
-    (0.8, '#78d151'),
-    (1, '#fde624'),
-], N=256)
-
-index = outliers_right
+# all_indices = range(len(betas))
+# regions = []
+# regions.append(all_indices[0:outliers_left])
+# regions.append(all_indices[outliers_left: outliers_right+2])
+# regions.append(all_indices[outliers_right+2:])
+# for (i, region) in enumerate(regions):
+#     plot_region(outliers, max_outlier, betas, tin_data,
+#                 david_data, time_series, z_order, region, f"region{i+1}")
 
 
-n, m = 4, 7
-all_indices = range(len(betas))
-regions = []
-regions.append(all_indices[0:outliers_left])
-regions.append(all_indices[outliers_left: outliers_right+2])
-regions.append(all_indices[outliers_right+2:])
+# white_viridis = LinearSegmentedColormap.from_list('white_viridis', [
+#     (0, '#ffffff'),
+#     (1e-20, '#440053'),
+#     (0.2, '#404388'),
+#     (0.4, '#2a788e'),
+#     (0.6, '#21a784'),
+#     (0.8, '#78d151'),
+#     (1, '#fde624'),
+# ], N=256)
 
-all_selected = []
+# index = outliers_right
 
-for (region_index, region) in enumerate(regions):
-    fig = plt.figure(layout="constrained", figsize=(16, 8))
-    gs = GridSpec(n, m, figure=fig)
 
-    axes = []
+# n, m = 4, 7
+# all_indices = range(len(betas))
+# regions = []
+# regions.append(all_indices[0:outliers_left])
+# regions.append(all_indices[outliers_left: outliers_right+2])
+# regions.append(all_indices[outliers_right+2:])
 
-    if len(region) >= n*m:
-        step = len(region) // (n*m)
-        indices = np.linspace(0, len(region) - 1, n*m, dtype=int)
-        selected_ts = [region[i] for i in indices]
-    else:
-        print("Not enough elements in the list")
+# all_selected = []
 
-    all_selected += selected_ts
+# for (region_index, region) in enumerate(regions):
+#     fig = plt.figure(layout="constrained", figsize=(16, 8))
+#     gs = GridSpec(n, m, figure=fig)
 
-    for i in range(n):
-        for j in range(m):
-            index = selected_ts[i*m+j]
+#     axes = []
 
-            time_serie = time_series[index]
+#     if len(region) >= n*m:
+#         step = len(region) // (n*m)
+#         indices = np.linspace(0, len(region) - 1, n*m, dtype=int)
+#         selected_ts = [region[i] for i in indices]
+#     else:
+#         print("Not enough elements in the list")
 
-            x = time_serie[:, 0]
-            y = time_serie[:, 1]
+#     all_selected += selected_ts
 
-            axes.append(fig.add_subplot(
-                gs[i, j], projection='scatter_density'))
-            axes[-1].scatter_density(x, y, cmap=white_viridis)
-            axes[-1].set_xlim(-1, 1)
-            axes[-1].set_ylim(-1, 1)
-            axes[-1].set_aspect('equal', 'box')
-            axes[-1].set_xticks([])
-            axes[-1].set_yticks([])
-            axes[-1].set_title(f"{index}")
-            circle = plt.Circle((0, 0), 1, color='black', fill=False)
-            axes[-1].add_artist(circle)
+#     for i in range(n):
+#         for j in range(m):
+#             index = selected_ts[i*m+j]
 
-    plt.gca().set_adjustable("box")
-    plt.savefig(
-        f"data_analysis/figs/recording_z7_polyakov/region_{region_index+1}_disc.pdf")
-    # plt.show()
+#             time_serie = time_series[index]
+
+#             x = time_serie[:, 0]
+#             y = time_serie[:, 1]
+
+#             axes.append(fig.add_subplot(
+#                 gs[i, j], projection='scatter_density'))
+#             axes[-1].scatter_density(x, y, cmap=white_viridis)
+#             axes[-1].set_xlim(-1, 1)
+#             axes[-1].set_ylim(-1, 1)
+#             axes[-1].set_aspect('equal', 'box')
+#             axes[-1].set_xticks([])
+#             axes[-1].set_yticks([])
+#             axes[-1].set_title(f"{index}")
+#             circle = plt.Circle((0, 0), 1, color='black', fill=False)
+#             axes[-1].add_artist(circle)
+
+#     plt.gca().set_adjustable("box")
+#     plt.savefig(
+#         f"data_analysis/figs/recording_z7_polyakov/region_{region_index+1}_disc.pdf")
+#     # plt.show()

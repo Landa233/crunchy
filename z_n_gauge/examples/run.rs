@@ -436,27 +436,26 @@ pub fn create_writer<'a, W: std::io::Write, T: ?Sized + Serialize>(
 }
 
 fn main() {
-    const LATTICEDIM: usize = 6;
+    const LATTICEDIM: usize = 7;
     let shape = Shape::new([LATTICEDIM, LATTICEDIM, LATTICEDIM, LATTICEDIM]);
-    const ZORDER: usize = 5;
+    const ZORDER: usize = 3;
 
-    let cosines = generate_cosine();
-    let sim_parameters = ZNParameters { beta: 1., cosines };
+    // let cosines = generate_cosine();
+    // let sim_parameters = ZNParameters { beta: 1., cosines };
 
-    let mut lattice = Lattice::<4, ZNLatticeTypes<4, ZORDER>>::new(shape, sim_parameters);
+    // let mut lattice = Lattice::<4, ZNLatticeTypes<4, ZORDER>>::new(shape, sim_parameters);
 
-    let edge_shape = lattice.edges.shape();
-    let mut rng_gen = rand::thread_rng();
+    // let edge_shape = lattice.edges.shape();
+    // let mut rng_gen = rand::thread_rng();
 
-    for i in 0..100 {
-        let edge_index = edge_shape.random_index(&mut rng_gen);
-        let new_edge = EdgeField {
-            phase: rng_gen.gen_range(0..ZORDER),
-        };
-        EdgeField::metropolis_step(edge_index, &mut lattice, new_edge, &mut rng_gen)
-    }
+    // for i in 0..100 {
+    //     let edge_index = edge_shape.random_index(&mut rng_gen);
+    //     let new_edge = EdgeField {
+    //         phase: rng_gen.gen_range(0..ZORDER),
+    //     };
+    //     EdgeField::metropolis_step(edge_index, &mut lattice, new_edge, &mut rng_gen)
+    // }
 
-    let betas = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5];
     let polyakov_parameters = PolyakovParameters {
         beta_range: [0.2, 2.0],
         steps: 20,
