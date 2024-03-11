@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{fmt::Debug, usize};
+use std::{fmt::Debug, marker::PhantomData, usize};
 
 use rand::Rng;
 
@@ -22,7 +22,7 @@ pub trait LatticeTypes {
     type SimParameterType: SimParameter;
 }
 
-pub trait Field: Debug + Copy + Clone + Default + fmt::Display {
+pub trait Field: Debug + Copy + Clone + Default {
     type LatticeMarker: LatticeTypes;
 
     fn rebuild(
@@ -35,13 +35,16 @@ pub trait Field: Debug + Copy + Clone + Default + fmt::Display {
         [(); 4 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 2)]:,
         [(); 4 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM - 1, 2)]:,
         [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 2)]:,
-        [(); 8 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 3)]:;
+        [(); 8 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 3)]:,
+    {
+    }
 }
 
 pub trait UpdateField: Field {
     fn update(
         node_index: [usize; <Self::LatticeMarker as LatticeTypes>::NDIM + 1],
         grid: &mut Lattice<{ <Self::LatticeMarker as LatticeTypes>::NDIM }, Self::LatticeMarker>,
+        new_field: Self,
     ) -> Self
     where
         [(); <Self::LatticeMarker as LatticeTypes>::NDIM + 1]:,
@@ -52,18 +55,18 @@ pub trait UpdateField: Field {
         [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 2)]:,
         [(); 8 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 3)]:;
 
-    fn set(
-        node_index: [usize; <Self::LatticeMarker as LatticeTypes>::NDIM + 1],
-        grid: &mut Lattice<{ <Self::LatticeMarker as LatticeTypes>::NDIM }, Self::LatticeMarker>,
-        field: Self,
-    ) where
-        [(); <Self::LatticeMarker as LatticeTypes>::NDIM + 1]:,
-        [(); <Self::LatticeMarker as LatticeTypes>::NDIM * 2]:,
-        [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 1)]:,
-        [(); 4 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 2)]:,
-        [(); 4 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM - 1, 2)]:,
-        [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 2)]:,
-        [(); 8 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 3)]:;
+    // fn set(
+    //     node_index: [usize; <Self::LatticeMarker as LatticeTypes>::NDIM + 1],
+    //     grid: &mut Lattice<{ <Self::LatticeMarker as LatticeTypes>::NDIM }, Self::LatticeMarker>,
+    //     field: Self,
+    // ) where
+    //     [(); <Self::LatticeMarker as LatticeTypes>::NDIM + 1]:,
+    //     [(); <Self::LatticeMarker as LatticeTypes>::NDIM * 2]:,
+    //     [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 1)]:,
+    //     [(); 4 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 2)]:,
+    //     [(); 4 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM - 1, 2)]:,
+    //     [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 2)]:,
+    //     [(); 8 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 3)]:;
 
     fn energy(
         node_index: [usize; <Self::LatticeMarker as LatticeTypes>::NDIM + 1],
@@ -98,8 +101,8 @@ pub trait UpdateField: Field {
     {
         let old_energy = Self::energy(node_index, grid);
 
-        Self::set(node_index, grid, new_field);
-        let old_field = Self::update(node_index, grid);
+        // Self::set(node_index, grid, new_field);
+        let old_field = Self::update(node_index, grid, new_field);
         let new_energy = Self::energy(node_index, grid);
 
         let delta_energy = new_energy - old_energy;
@@ -116,8 +119,8 @@ pub trait UpdateField: Field {
             return;
         }
 
-        Self::set(node_index, grid, old_field);
-        Self::update(node_index, grid);
+        // Self::set(node_index, grid, old_field);
+        Self::update(node_index, grid, old_field);
     }
 }
 
@@ -702,16 +705,11 @@ where
     }
 }
 
-struct Simulation<const NDIM: usize, LatticeMarker: LatticeTypes>
-where
-    [(); NDIM + 1]:,
-    [(); NDIM * 2]:,
-    [(); 2 * (NDIM - 1)]:,
-    [(); 4 * binomial_coefficient(NDIM, 2)]:,
-    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
-    [(); 2 * (NDIM - 2)]:,
-    [(); 8 * binomial_coefficient(NDIM, 3)]:,
-{
-    lattice: Lattice<NDIM, LatticeMarker>,
-    rng_gen: rand::rngs::ThreadRng,
+#[derive(Debug, Copy, Clone, Default)]
+pub struct EmptyField<AnyL> {
+    marker: PhantomData<AnyL>,
+}
+
+impl<AnyL: LatticeTypes + Debug + Copy + Clone + Default> Field for EmptyField<AnyL> {
+    type LatticeMarker = AnyL;
 }

@@ -1,4 +1,7 @@
+use rand::Rng;
 use std::ops::Deref;
+
+use rand::rngs::ThreadRng;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Shape<const NDIM: usize> {
@@ -49,8 +52,29 @@ impl<const NDIM: usize> Shape<NDIM> {
         flat_index
     }
 
+    pub fn flat_to_index(&self, mut flat_index: usize) -> [usize; NDIM] {
+        let mut index = [0; NDIM];
+        let mut stride = self.size();
+
+        for i in 0..self.ndim {
+            stride /= self.dim[i];
+            index[i] = flat_index / stride;
+            flat_index -= index[i] * stride;
+        }
+
+        index
+    }
+
     pub fn iter(&self) -> ShapeIterator<NDIM> {
         ShapeIterator::new(*self)
+    }
+
+    pub fn random_index(&self, rng_gen: &mut ThreadRng) -> [usize; NDIM] {
+        let size = self.size();
+        let flat_index = rng_gen.gen_range(0..size);
+        let index = self.flat_to_index(flat_index);
+
+        index
     }
 }
 
