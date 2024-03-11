@@ -55,19 +55,6 @@ pub trait UpdateField: Field {
         [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 2)]:,
         [(); 8 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 3)]:;
 
-    // fn set(
-    //     node_index: [usize; <Self::LatticeMarker as LatticeTypes>::NDIM + 1],
-    //     grid: &mut Lattice<{ <Self::LatticeMarker as LatticeTypes>::NDIM }, Self::LatticeMarker>,
-    //     field: Self,
-    // ) where
-    //     [(); <Self::LatticeMarker as LatticeTypes>::NDIM + 1]:,
-    //     [(); <Self::LatticeMarker as LatticeTypes>::NDIM * 2]:,
-    //     [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 1)]:,
-    //     [(); 4 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 2)]:,
-    //     [(); 4 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM - 1, 2)]:,
-    //     [(); 2 * (<Self::LatticeMarker as LatticeTypes>::NDIM - 2)]:,
-    //     [(); 8 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 3)]:;
-
     fn energy(
         node_index: [usize; <Self::LatticeMarker as LatticeTypes>::NDIM + 1],
         grid: &mut Lattice<{ <Self::LatticeMarker as LatticeTypes>::NDIM }, Self::LatticeMarker>,
@@ -100,48 +87,23 @@ pub trait UpdateField: Field {
         [(); 8 * binomial_coefficient(<Self::LatticeMarker as LatticeTypes>::NDIM, 3)]:,
     {
         let old_energy = Self::energy(node_index, grid);
-
-        // Self::set(node_index, grid, new_field);
         let old_field = Self::update(node_index, grid, new_field);
         let new_energy = Self::energy(node_index, grid);
 
         let delta_energy = new_energy - old_energy;
-
         if delta_energy < 0.0 {
             return;
         }
 
         let acceptance_probability = (-delta_energy).exp();
-
-        let random_number: f32 = rng_gen.gen_range(0.0..1.0); // random number between 0 and 1
-
+        let random_number: f32 = rng_gen.gen_range(0.0..1.0);
         if random_number < acceptance_probability {
             return;
         }
 
-        // Self::set(node_index, grid, old_field);
         Self::update(node_index, grid, old_field);
     }
 }
-
-// pub trait Initializer<FieldType: Field> {
-//     fn init(
-//         &mut self,
-//         index: [usize; <<FieldType as Field>::LatticeMarker as LatticeTypes>::NDIM + 1],
-//     ) -> FieldType;
-// }
-
-// impl<FieldType: Field, F> Initializer<FieldType> for F
-// where
-//     F: FnMut([usize; <<FieldType as Field>::LatticeMarker as LatticeTypes>::NDIM + 1]) -> FieldType,
-// {
-//     fn init(
-//         &mut self,
-//         index: [usize; <<FieldType as Field>::LatticeMarker as LatticeTypes>::NDIM + 1],
-//     ) -> FieldType {
-//         self(index)
-//     }
-// }
 
 #[derive(Debug, Copy, Clone, Default)]
 pub struct Node<GraphConnections: Default, FieldType: Field> {

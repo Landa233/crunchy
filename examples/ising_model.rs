@@ -8,7 +8,6 @@ use crunchy::{
         lattice::{EmptyField, Field, Lattice, LatticeTypes, SimParameter, UpdateField},
     },
 };
-use rand::Rng;
 
 #[derive(Debug, Copy, Clone, Default)]
 struct Spin {
@@ -37,14 +36,6 @@ impl UpdateField for Spin {
 
         old_field
     }
-
-    // fn set(
-    //     node_index: [usize; <Self::LatticeMarker as LatticeTypes>::NDIM + 1],
-    //     grid: &mut Lattice<{ <Self::LatticeMarker as LatticeTypes>::NDIM }, Self::LatticeMarker>,
-    //     field: Self,
-    // ) {
-    //     grid.vertices[node_index].data = field;
-    // }
 
     fn energy(
         node_index: [usize; <Self::LatticeMarker as LatticeTypes>::NDIM + 1],
@@ -116,7 +107,7 @@ fn print_ising_model(lattice: &Lattice<2, SpinLattice>) {
 fn main() {
     let shape = Shape::new([50, 50]);
 
-    let sim_params = IsingParameters { beta: 0.1 };
+    let sim_params = IsingParameters { beta: 1. / 2.269 };
 
     let mut lattice = Lattice::<2, SpinLattice>::new(shape, sim_params);
 
@@ -129,13 +120,11 @@ fn main() {
     let vertex_shape = lattice.vertices.shape();
     let mut rng_gen = rand::thread_rng();
 
-    // println!("{:?}", Spin::energy([0, 0, 0], &mut lattice));
-
-    for _ in 0..10000 {
+    for _ in 0..100000000 {
         let index = vertex_shape.random_index(&mut rng_gen);
 
         let new_field = Spin {
-            up_down: rng_gen.gen_bool(0.5),
+            up_down: !lattice.vertices[index].data.up_down,
         };
 
         Spin::metropolis_step(index, &mut lattice, new_field, &mut rng_gen);
