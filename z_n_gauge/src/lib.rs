@@ -5,3 +5,4 @@
     unused_macros,
     incomplete_features
 )]
+pub mod data_analysis;

@@ -21,15 +21,13 @@ impl fmt::Display for Spin {
 }
 
 impl Field for Spin {
-    type LatticeMarker = SpinLattice;
+    type IndexType = [usize; 3];
+
+    type GridType = Lattice<2, SpinLattice>;
 }
 
 impl UpdateField for Spin {
-    fn update(
-        node_index: [usize; <Self::LatticeMarker as LatticeTypes>::NDIM + 1],
-        grid: &mut Lattice<{ <Self::LatticeMarker as LatticeTypes>::NDIM }, Self::LatticeMarker>,
-        field: Self,
-    ) -> Self {
+    fn update(node_index: Self::IndexType, grid: &mut Self::GridType, field: Self) -> Self {
         let old_field = grid.vertices[node_index].data;
 
         grid.vertices[node_index].data = field;
@@ -37,10 +35,7 @@ impl UpdateField for Spin {
         old_field
     }
 
-    fn energy(
-        node_index: [usize; <Self::LatticeMarker as LatticeTypes>::NDIM + 1],
-        grid: &mut Lattice<{ <Self::LatticeMarker as LatticeTypes>::NDIM }, Self::LatticeMarker>,
-    ) -> f32 {
+    fn energy(node_index: Self::IndexType, grid: &mut Self::GridType) -> f32 {
         let shape = *grid.vertices.shape();
 
         let up = (Ind::new(node_index) + [0, 0, 1]) % shape;
@@ -59,13 +54,8 @@ impl UpdateField for Spin {
         -grid.sim_parameters.beta * energy
     }
 
-    fn init() -> impl FnMut([usize; <Self::LatticeMarker as LatticeTypes>::NDIM + 1]) -> Self
-    where
-        [(); <Self::LatticeMarker as LatticeTypes>::NDIM + 1]:,
-    {
-        |_node_index: [usize; <Self::LatticeMarker as LatticeTypes>::NDIM + 1]| Spin {
-            up_down: true,
-        }
+    fn init() -> impl FnMut([usize; 3]) -> Self {
+        |_node_index: [usize; 3]| Spin { up_down: true }
     }
 }
 

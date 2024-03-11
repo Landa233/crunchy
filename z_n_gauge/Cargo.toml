@@ -7,4 +7,8 @@ edition = "2021"
 [dependencies]
 colored = "2.1.0"
 crunchy = { path = "../" }
+ndarray = "0.15.6"
 rand = "0.8.5"
+npyz = { version = "0.8.2", features = ["npz", "derive"] }
+byteorder = "*"
+zip = { version = "0.6" }
