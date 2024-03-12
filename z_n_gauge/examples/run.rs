@@ -51,6 +51,7 @@ where
 {
     fn update(node_index: Self::IndexType, grid: &mut Self::GridType, new_field: Self) -> Self {
         let old_field = grid.edges[node_index].data;
+        grid.edges[node_index].data = new_field;
 
         let faces = grid.edges[node_index].graph_connections.faces;
         for plaquette_index in faces.iter() {
@@ -65,7 +66,7 @@ where
         let ZNParameters { beta, cosines } = grid.sim_parameters;
 
         for plaquette_id in grid.edges[node_index].graph_connections.faces.iter() {
-            plaquette_action += -beta * (1. - 1. * cosines[grid.faces[node_index].data.holonomy])
+            plaquette_action += beta * (1. - 1. * cosines[grid.faces[*plaquette_id].data.holonomy])
         }
 
         plaquette_action
@@ -82,6 +83,12 @@ where
 #[derive(Debug, Clone, Copy, Default)]
 struct PlaquetteField<const NDIM: usize, const ZORDER: usize> {
     holonomy: usize,
+}
+
+impl<const NDIM: usize, const ZORDER: usize> fmt::Display for PlaquetteField<NDIM, ZORDER> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "PlaquetteField: {}", self.holonomy)
+    }
 }
 
 impl<const NDIM: usize, const ZORDER: usize> Field for PlaquetteField<NDIM, ZORDER>
@@ -436,31 +443,33 @@ pub fn create_writer<'a, W: std::io::Write, T: ?Sized + Serialize>(
 }
 
 fn main() {
-    const LATTICEDIM: usize = 7;
+    const LATTICEDIM: usize = 6;
     let shape = Shape::new([LATTICEDIM, LATTICEDIM, LATTICEDIM, LATTICEDIM]);
-    const ZORDER: usize = 3;
+    const ZORDER: usize = 7;
 
-    // let cosines = generate_cosine();
-    // let sim_parameters = ZNParameters { beta: 1., cosines };
+    // let mut sim = Simulation::<ZORDER>::new(
+    //     shape,
+    //     ZNParameters {
+    //         beta: 10.0,
+    //         cosines: generate_cosine::<ZORDER>(),
+    //     },
+    // );
 
-    // let mut lattice = Lattice::<4, ZNLatticeTypes<4, ZORDER>>::new(shape, sim_parameters);
-
-    // let edge_shape = lattice.edges.shape();
     // let mut rng_gen = rand::thread_rng();
+    // let new_field = EdgeField { phase: 2 };
+    // EdgeField::metropolis_step([0, 0, 0, 0, 0], &mut sim.sim, new_field, &mut rng_gen);
 
-    // for i in 0..100 {
-    //     let edge_index = edge_shape.random_index(&mut rng_gen);
-    //     let new_edge = EdgeField {
-    //         phase: rng_gen.gen_range(0..ZORDER),
-    //     };
-    //     EdgeField::metropolis_step(edge_index, &mut lattice, new_edge, &mut rng_gen)
+    // for _ in 0..200 {
+    //     sim.sweep();
     // }
 
+    // println!("{}", sim.faces);
+
     let polyakov_parameters = PolyakovParameters {
-        beta_range: [0.2, 2.0],
-        steps: 20,
+        beta_range: [0.2, 5.0],
+        steps: 50,
         number_of_threads: 8,
-        recordings: 1000,
+        recordings: 10000,
         grid_shape: shape,
         thermalization_steps: 0,
     };
