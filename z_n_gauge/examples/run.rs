@@ -455,6 +455,14 @@ fn main() {
     //     },
     // );
 
+    // for _ in 0..10000 {
+    //     sim.sweep();
+    // }
+
+    // for edge in sim.edges.iter() {
+    //     println!("{:?}", edge.data.phase);
+    // }
+
     // let mut rng_gen = rand::thread_rng();
     // let new_field = EdgeField { phase: 2 };
     // EdgeField::metropolis_step([0, 0, 0, 0, 0], &mut sim.sim, new_field, &mut rng_gen);

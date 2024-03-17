@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mpl_scatter_density
 
-from data_analysis.plot_times_series import plot_region
+# from data_analysis.plot_times_series import plot_region
 
 # from data_analysis.python_scripts.plot_times_series import draw_times_series, plot_region, plot_selected_ts
 
@@ -20,7 +20,7 @@ if not load_data_flag:
     print("Producing data from scratch")
     print("Loading data")
 
-    data = np.load('data_analysis/temp/transfer_zip.npz')
+    data = np.load('z_n_gauge/data_analysis/temp/transfer_zip.npz')
 
     raw_data = data["loops"]
     meta_data = data["meta_data"]
@@ -60,7 +60,7 @@ if not load_data_flag:
         # david_data.append(david_snapshot/normalization)
 
     # Save the arrays to a file
-    np.savez('data_analysis/temp/arrays.npz', tin_data=tin_data,
+    np.savez('z_n_gauge/data_analysis/temp/arrays.npz', tin_data=tin_data,
              david_data=david_data, time_series=time_series, betas=betas)
 
 else:
