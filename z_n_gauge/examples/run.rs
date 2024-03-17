@@ -83,6 +83,7 @@ where
 #[derive(Debug, Clone, Copy, Default)]
 struct PlaquetteField<const NDIM: usize, const ZORDER: usize> {
     holonomy: usize,
+    dirac_string: isize,
 }
 
 impl<const NDIM: usize, const ZORDER: usize> fmt::Display for PlaquetteField<NDIM, ZORDER> {
@@ -114,7 +115,46 @@ where
         holonomy -= grid.edges[edges[3]].data.phase;
 
         grid.faces[node_index].data.holonomy = holonomy % ZORDER;
+
+        let dirac_string = calculate_dirac_string::<NDIM, ZORDER>(node_index, grid);
+        grid.faces[node_index].data.dirac_string = dirac_string;
     }
+}
+
+fn calculate_dirac_string<const NDIM: usize, const ZORDER: usize>(
+    face_index: [usize; NDIM + 1],
+    grid: &Lattice<NDIM, ZNLatticeTypes<NDIM, ZORDER>>,
+) -> isize
+where
+    [(); NDIM + 1]:,
+    [(); NDIM * 2]:,
+    [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
+    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
+    [(); 2 * (NDIM - 2)]:,
+    [(); 8 * binomial_coefficient(NDIM, 3)]:,
+{
+    fn shift<const ZORDER: usize>(phase: usize) -> isize {
+        if phase < ZORDER / 2 {
+            return phase as isize;
+        }
+        return phase as isize - ZORDER as isize;
+    }
+
+    let mut windings = 0;
+    let edges = grid.faces[face_index].graph_connections.edges;
+    windings += shift::<ZORDER>(grid.edges[edges[0]].data.phase);
+    windings -= shift::<ZORDER>(grid.edges[edges[1]].data.phase);
+    windings += shift::<ZORDER>(grid.edges[edges[2]].data.phase);
+    windings -= shift::<ZORDER>(grid.edges[edges[3]].data.phase);
+
+    if windings < ZORDER as isize / 2 {
+        return -1;
+    }
+    if windings > ZORDER as isize / 2 {
+        return 1;
+    }
+    0
 }
 
 #[derive(Debug, Clone, Copy, Default)]
