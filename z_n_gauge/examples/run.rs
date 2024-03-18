@@ -7,7 +7,7 @@
 )]
 #![feature(generic_const_exprs)]
 
-use std::{f32::consts::PI, fmt, fs::File, ops::Deref, thread};
+use std::{f32::consts::PI, fmt, fs::File, ops::Deref, thread, time::Instant};
 
 use crunchy::{
     crarray::shape::Shape,
@@ -561,54 +561,68 @@ fn main() {
     let shape = Shape::new([LATTICEDIM, LATTICEDIM, LATTICEDIM, LATTICEDIM]);
     const ZORDER: usize = 3;
 
-    let polyakov_parameters = PolyakovParameters {
-        beta_range: [0.49, 0.56],
-        steps: 48,
-        number_of_threads: 8,
-        recordings: 10000,
-        grid_shape: shape,
-        thermalization_steps: 0,
-        lambda: 1.0,
-    };
+    for i in 0..6 {
+        let lambda = 0.5 + i as f32 * 0.1;
 
-    let res = polyakov_record_range_threaded::<ZORDER>(polyakov_parameters);
+        let polyakov_parameters = PolyakovParameters {
+            beta_range: [0.4, 0.75],
+            steps: 24,
+            number_of_threads: 8,
+            recordings: 20000,
+            grid_shape: shape,
+            thermalization_steps: 0,
+            lambda,
+        };
 
-    let configurations = res
-        .into_iter()
-        .map(|x| Loop {
-            beta: x.0,
-            data: x.1,
-        })
-        .collect::<Vec<Loop>>();
+        let start = Instant::now();
 
-    let file = File::create("z_n_gauge/data_analysis/temp/transfer_zip.npz").unwrap();
+        let res = polyakov_record_range_threaded::<ZORDER>(polyakov_parameters);
 
-    // Write Configurations
-    let mut zip = zip::ZipWriter::new(file);
+        let configurations = res
+            .into_iter()
+            .map(|x| Loop {
+                beta: x.0,
+                data: x.1,
+            })
+            .collect::<Vec<Loop>>();
 
-    let options = FileOptions::default().large_file(true);
-    zip.start_file(npz::file_name_from_array_name("loops"), options)
+        let mut name = format!("z_n_gauge/data_analysis/temp/mu_{:.2}", lambda);
+        name = name.replace(".", "_");
+        name = name + ".npz";
+
+        let file = File::create(name).unwrap();
+
+        // Write Configurations
+        let mut zip = zip::ZipWriter::new(file);
+
+        let options = FileOptions::default().large_file(true);
+        zip.start_file(npz::file_name_from_array_name("loops"), options)
+            .unwrap();
+        let dtype_configs = create_dtype(&configurations[0].data.shape());
+        let mut writer =
+            create_writer::<_, Loop>(&[configurations.len() as u64], dtype_configs, &mut zip);
+        writer.extend(configurations).unwrap();
+        writer.finish().unwrap();
+
+        // Write Metadata
+        zip.start_file(
+            npz::file_name_from_array_name("meta_data"),
+            Default::default(),
+        )
         .unwrap();
-    let dtype_configs = create_dtype(&configurations[0].data.shape());
-    let mut writer =
-        create_writer::<_, Loop>(&[configurations.len() as u64], dtype_configs, &mut zip);
-    writer.extend(configurations).unwrap();
-    writer.finish().unwrap();
+        let dtype_meta_data = <MetaData as AutoSerialize>::default_dtype();
+        let mut writer = create_writer::<_, MetaData>(&[1], dtype_meta_data, &mut zip);
+        writer
+            .extend(vec![MetaData {
+                z_order: ZORDER as u32,
+            }])
+            .unwrap();
+        writer.finish().unwrap();
 
-    // Write Metadata
-    zip.start_file(
-        npz::file_name_from_array_name("meta_data"),
-        Default::default(),
-    )
-    .unwrap();
-    let dtype_meta_data = <MetaData as AutoSerialize>::default_dtype();
-    let mut writer = create_writer::<_, MetaData>(&[1], dtype_meta_data, &mut zip);
-    writer
-        .extend(vec![MetaData {
-            z_order: ZORDER as u32,
-        }])
-        .unwrap();
-    writer.finish().unwrap();
+        zip.finish().unwrap();
 
-    zip.finish().unwrap();
+        let duration = start.elapsed();
+
+        println!("Time elapsed: {:?}", duration);
+    }
 }

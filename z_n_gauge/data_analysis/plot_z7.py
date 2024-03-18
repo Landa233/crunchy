@@ -20,7 +20,7 @@ if not load_data_flag:
     print("Producing data from scratch")
     print("Loading data")
 
-    data = np.load('z_n_gauge/data_analysis/temp/transfer_zip.npz')
+    data = np.load('z_n_gauge/data_analysis/temp/mu_1_00.npz')
 
     raw_data = data["loops"]
     meta_data = data["meta_data"]
@@ -71,11 +71,14 @@ else:
     time_series = arrays['time_series']
     betas = arrays['betas']
 
-z_order = 7
+z_order = 3
 
 plt.plot(betas, tin_data, 'go', label="Tin", )
 plt.plot(betas, david_data, 'bo', label="David", )
-# plt.show()
+plt.show()
+
+# plt.savefig(
+#     f"z_n_gauge/data_analysis/figs/z_3_beta_sweep.pdf")
 
 
 n = 8
@@ -129,11 +132,11 @@ for i in range(n):
             axes[-1].add_artist(circle)
 
 plt.gca().set_adjustable("box")
+# plt.savefig(
+#     f"z_n_gauge/data_analysis/figs/z_3_discs.pdf")
+
 plt.show()
 
-
-# plt.savefig(
-#     f"data_analysis/figs/recording_z7_polyakov/region_{1}_disc.pdf")
 
 # outliers = []
 # for (i, beta) in enumerate(betas):
