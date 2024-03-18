@@ -75,7 +75,65 @@ z_order = 7
 
 plt.plot(betas, tin_data, 'go', label="Tin", )
 plt.plot(betas, david_data, 'bo', label="David", )
+# plt.show()
+
+
+n = 8
+m = 8
+region = range(len(time_series))
+
+fig = plt.figure(layout="constrained", figsize=(16, 8))
+gs = GridSpec(n, m, figure=fig)
+
+axes = []
+
+if len(region) >= n*m:
+    step = len(region) // (n*m)
+    indices = np.linspace(0, len(region) - 1, n*m, dtype=int)
+    selected_ts = [region[i] for i in indices]
+else:
+    print("Not enough elements in the list")
+
+
+white_viridis = LinearSegmentedColormap.from_list('white_viridis', [
+    (0, '#ffffff'),
+    (1e-20, '#440053'),
+    (0.2, '#404388'),
+    (0.4, '#2a788e'),
+    (0.6, '#21a784'),
+    (0.8, '#78d151'),
+    (1, '#fde624'),
+], N=256)
+
+
+for i in range(n):
+    for j in range(m):
+        if i*m+j < len(region):
+            index = region[i*m+j]
+
+            time_serie = time_series[index]
+
+            x = time_serie[:, 0]
+            y = time_serie[:, 1]
+
+            axes.append(fig.add_subplot(
+                gs[i, j], projection='scatter_density'))
+            axes[-1].scatter_density(x, y, cmap=white_viridis)
+            axes[-1].set_xlim(-1, 1)
+            axes[-1].set_ylim(-1, 1)
+            axes[-1].set_aspect('equal', 'box')
+            axes[-1].set_xticks([])
+            axes[-1].set_yticks([])
+            axes[-1].set_title(f"{index}")
+            circle = plt.Circle((0, 0), 1, color='black', fill=False)
+            axes[-1].add_artist(circle)
+
+plt.gca().set_adjustable("box")
 plt.show()
+
+
+# plt.savefig(
+#     f"data_analysis/figs/recording_z7_polyakov/region_{1}_disc.pdf")
 
 # outliers = []
 # for (i, beta) in enumerate(betas):
