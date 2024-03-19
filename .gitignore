@@ -2,4 +2,4 @@
 /./data_analysis/temp
 *.npz
 *.pdf
-
+/myenv
