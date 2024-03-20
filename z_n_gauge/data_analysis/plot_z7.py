@@ -20,7 +20,8 @@ if not load_data_flag:
     print("Producing data from scratch")
     print("Loading data")
 
-    data = np.load('z_n_gauge/data_analysis/temp/mu_1_00.npz')
+    data = np.load(
+        'z_n_gauge/data_analysis/temp/transfer.npz')
 
     raw_data = data["loops"]
     meta_data = data["meta_data"]
