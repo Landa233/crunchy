@@ -2,11 +2,8 @@ use std::fmt;
 
 use colored::Colorize;
 use crunchy::{
-    crarray::shape::Shape,
-    lattice::{
-        ind::Ind,
-        lattice::{EmptyField, Field, Lattice, LatticeTypes, SimParameter, UpdateField},
-    },
+    crarray::{ind::Ind, shape::Shape},
+    lattice::lattice::{EmptyField, Field, Lattice, LatticeTypes, SimParameter, UpdateField},
 };
 
 #[derive(Debug, Copy, Clone, Default)]

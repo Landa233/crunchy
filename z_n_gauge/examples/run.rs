@@ -11,10 +11,7 @@ use std::{f32::consts::PI, fmt, fs::File, ops::Deref, thread, time::Instant};
 
 use crunchy::{
     crarray::shape::Shape,
-    lattice::{
-        ind::Ind,
-        lattice::{EmptyField, Field, Lattice, LatticeTypes, SimParameter, UpdateField},
-    },
+    lattice::lattice::{EmptyField, Field, Lattice, LatticeTypes, SimParameter, UpdateField},
     math_utils::binomial_coefficient,
 };
 use ndarray::{Array, IxDyn};
