@@ -7,14 +7,11 @@
 )]
 #![feature(generic_const_exprs)]
 
-use std::{f32::consts::PI, fmt, fs::File, ops::Deref, thread};
+use std::{f32::consts::PI, fmt, fs::File, ops::Deref, thread, time::Instant};
 
 use crunchy::{
     crarray::shape::Shape,
-    lattice::{
-        ind::Ind,
-        lattice::{EmptyField, Field, Lattice, LatticeTypes, SimParameter, UpdateField},
-    },
+    lattice::lattice::{EmptyField, Field, Lattice, LatticeTypes, SimParameter, UpdateField},
     math_utils::binomial_coefficient,
 };
 use ndarray::{Array, IxDyn};
@@ -58,18 +55,31 @@ where
             PlaquetteField::<NDIM, ZORDER>::rebuild(*plaquette_index, grid);
         }
 
+        let cubes = grid.edges[node_index].graph_connections.cubes;
+        for cube_index in cubes.iter() {
+            MonopoleField::<NDIM, ZORDER>::rebuild(*cube_index, grid);
+        }
+
         old_field
     }
 
     fn energy(node_index: Self::IndexType, grid: &mut Self::GridType) -> f32 {
-        let mut plaquette_action = 0.;
-        let ZNParameters { beta, cosines } = grid.sim_parameters;
+        let mut action = 0.;
+        let ZNParameters {
+            beta,
+            cosines,
+            lambda,
+        } = grid.sim_parameters;
 
         for plaquette_id in grid.edges[node_index].graph_connections.faces.iter() {
-            plaquette_action += beta * (1. - 1. * cosines[grid.faces[*plaquette_id].data.holonomy])
+            action += beta * (1. - 1. * cosines[grid.faces[*plaquette_id].data.holonomy])
         }
 
-        plaquette_action
+        for cube_id in grid.edges[node_index].graph_connections.cubes.iter() {
+            action += lambda * grid.cubes[*cube_id].data.charge.abs() as f32;
+        }
+
+        action
     }
 
     fn init() -> impl FnMut([usize; NDIM + 1]) -> Self
@@ -83,6 +93,7 @@ where
 #[derive(Debug, Clone, Copy, Default)]
 struct PlaquetteField<const NDIM: usize, const ZORDER: usize> {
     holonomy: usize,
+    dirac_string: isize,
 }
 
 impl<const NDIM: usize, const ZORDER: usize> fmt::Display for PlaquetteField<NDIM, ZORDER> {
@@ -114,6 +125,84 @@ where
         holonomy -= grid.edges[edges[3]].data.phase;
 
         grid.faces[node_index].data.holonomy = holonomy % ZORDER;
+
+        let dirac_string = calculate_dirac_string::<NDIM, ZORDER>(node_index, grid);
+        grid.faces[node_index].data.dirac_string = dirac_string;
+    }
+}
+
+fn calculate_dirac_string<const NDIM: usize, const ZORDER: usize>(
+    face_index: [usize; NDIM + 1],
+    grid: &Lattice<NDIM, ZNLatticeTypes<NDIM, ZORDER>>,
+) -> isize
+where
+    [(); NDIM + 1]:,
+    [(); NDIM * 2]:,
+    [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
+    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
+    [(); 2 * (NDIM - 2)]:,
+    [(); 8 * binomial_coefficient(NDIM, 3)]:,
+{
+    fn shift<const ZORDER: usize>(phase: usize) -> isize {
+        if phase <= ZORDER / 2 {
+            return phase as isize;
+        }
+        return phase as isize - ZORDER as isize;
+    }
+
+    let mut windings = 0;
+    let edges = grid.faces[face_index].graph_connections.edges;
+    windings += shift::<ZORDER>(grid.edges[edges[0]].data.phase);
+    windings -= shift::<ZORDER>(grid.edges[edges[1]].data.phase);
+    windings += shift::<ZORDER>(grid.edges[edges[2]].data.phase);
+    windings -= shift::<ZORDER>(grid.edges[edges[3]].data.phase);
+
+    if ZORDER != 3 {
+        panic!("Only implemented for Z3")
+    }
+
+    let mut res = 0;
+    // For ZORDER > 3, windings of 2?
+    if windings < -(ZORDER as isize) / 2 {
+        res = -1;
+    }
+    if windings > ZORDER as isize / 2 {
+        res = 1;
+    }
+
+    res
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+struct MonopoleField<const NDIM: usize, const ZORDER: usize> {
+    charge: isize,
+}
+
+impl<const NDIM: usize, const ZORDER: usize> Field for MonopoleField<NDIM, ZORDER>
+where
+    [(); NDIM + 1]:,
+    [(); NDIM * 2]:,
+    [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
+    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
+    [(); 2 * (NDIM - 2)]:,
+    [(); 8 * binomial_coefficient(NDIM, 3)]:,
+{
+    type IndexType = [usize; NDIM + 1];
+    type GridType = Lattice<NDIM, ZNLatticeTypes<NDIM, ZORDER>>;
+
+    fn rebuild(node_index: Self::IndexType, grid: &mut Self::GridType) {
+        let faces = grid.cubes[node_index].graph_connections.faces;
+
+        let mut charge = 0;
+        let mut alternator = 1;
+        for face_index in faces.iter() {
+            charge += alternator * grid.faces[*face_index].data.dirac_string;
+            alternator *= -1;
+        }
+
+        grid.cubes[node_index].data.charge = charge;
     }
 }
 
@@ -135,7 +224,7 @@ where
     type VertexType = EmptyField<ZNLatticeTypes<NDIM, ZORDER>>;
     type EdgeType = EdgeField<NDIM, ZORDER>;
     type FaceType = PlaquetteField<NDIM, ZORDER>;
-    type CubeType = EmptyField<ZNLatticeTypes<NDIM, ZORDER>>;
+    type CubeType = MonopoleField<NDIM, ZORDER>;
 
     type SimParameterType = ZNParameters<ZORDER>;
 }
@@ -144,6 +233,7 @@ where
 struct ZNParameters<const ZORDER: usize> {
     beta: f32,
     cosines: [f32; ZORDER],
+    lambda: f32,
 }
 
 fn generate_cosine<const ZORDER: usize>() -> [f32; ZORDER] {
@@ -203,6 +293,7 @@ fn polyakov_record_range<const ZORDER: usize>(
     grid_shape: Shape<4>,
     thermalization_steps: usize,
     number_of_threads: usize,
+    lambda: f32,
 ) -> Vec<(f32, Array<[f32; 2], IxDyn>)> {
     let mut complex_roots = [[0.0, 0.0]; ZORDER];
     for i in 0..ZORDER {
@@ -218,6 +309,7 @@ fn polyakov_record_range<const ZORDER: usize>(
         let sim_pars = ZNParameters {
             beta: *beta,
             cosines: generate_cosine::<ZORDER>(),
+            lambda,
         };
 
         let lattice = Lattice::<4, ZNLatticeTypes<4, ZORDER>>::new(grid_shape, sim_pars);
@@ -238,6 +330,7 @@ pub struct PolyakovParameters {
     pub recordings: usize,
     pub grid_shape: Shape<4>,
     pub thermalization_steps: usize,
+    pub lambda: f32,
 }
 
 pub fn split_beta_range(
@@ -290,6 +383,7 @@ fn polyakov_record_range_threaded<const ZORDER: usize>(
         recordings,
         grid_shape,
         thermalization_steps,
+        lambda,
     } = parameter;
     let [start_beta, end_beta] = beta_range;
 
@@ -306,6 +400,7 @@ fn polyakov_record_range_threaded<const ZORDER: usize>(
                 grid_shape,
                 thermalization_steps,
                 number_of_threads,
+                lambda,
             );
 
             return partial_data;
@@ -443,44 +538,41 @@ pub fn create_writer<'a, W: std::io::Write, T: ?Sized + Serialize>(
 }
 
 fn main() {
-    const LATTICEDIM: usize = 6;
-    let shape = Shape::new([LATTICEDIM, LATTICEDIM, LATTICEDIM, LATTICEDIM]);
-    const ZORDER: usize = 7;
+    // const LATTICEDIM: usize = 6;
+    // let shape = Shape::new([LATTICEDIM, LATTICEDIM, LATTICEDIM, LATTICEDIM]);
+    // const ZORDER: usize = 3;
 
     // let mut sim = Simulation::<ZORDER>::new(
     //     shape,
     //     ZNParameters {
-    //         beta: 10.0,
+    //         beta: 0.2,
     //         cosines: generate_cosine::<ZORDER>(),
     //     },
     // );
 
-    // for _ in 0..10000 {
+    // for _ in 0..3 {
     //     sim.sweep();
     // }
 
-    // for edge in sim.edges.iter() {
-    //     println!("{:?}", edge.data.phase);
-    // }
+    const LATTICEDIM: usize = 7;
+    let shape = Shape::new([LATTICEDIM, LATTICEDIM, LATTICEDIM, LATTICEDIM]);
+    const ZORDER: usize = 3;
 
-    // let mut rng_gen = rand::thread_rng();
-    // let new_field = EdgeField { phase: 2 };
-    // EdgeField::metropolis_step([0, 0, 0, 0, 0], &mut sim.sim, new_field, &mut rng_gen);
-
-    // for _ in 0..200 {
-    //     sim.sweep();
-    // }
-
-    // println!("{}", sim.faces);
+    // for i in 0..6 {
+    // let lambda = 0.5 + i as f32 * 0.1;
+    let lambda = 1.0;
 
     let polyakov_parameters = PolyakovParameters {
-        beta_range: [0.2, 5.0],
-        steps: 50,
+        beta_range: [0.49, 0.56],
+        steps: 24,
         number_of_threads: 8,
-        recordings: 10000,
+        recordings: 20000,
         grid_shape: shape,
         thermalization_steps: 0,
+        lambda,
     };
+
+    let start = Instant::now();
 
     let res = polyakov_record_range_threaded::<ZORDER>(polyakov_parameters);
 
@@ -492,7 +584,13 @@ fn main() {
         })
         .collect::<Vec<Loop>>();
 
-    let file = File::create("data_analysis/temp/transfer_zip.npz").unwrap();
+    // let mut name = format!("z_n_gauge/data_analysis/temp/mu_{:.2}", lambda);
+    // name = name.replace(".", "_");
+    // name = name + ".npz";
+
+    let name = "z_n_gauge/data_analysis/temp/transfer.npz";
+
+    let file = File::create(name).unwrap();
 
     // Write Configurations
     let mut zip = zip::ZipWriter::new(file);
@@ -522,4 +620,9 @@ fn main() {
     writer.finish().unwrap();
 
     zip.finish().unwrap();
+
+    let duration = start.elapsed();
+
+    println!("Time elapsed: {:?}", duration);
+    // }
 }

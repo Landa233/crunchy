@@ -4,8 +4,7 @@ use std::{fmt::Debug, marker::PhantomData, usize};
 use rand::Rng;
 
 use crate::{
-    crarray::{self, crarray::CRArray, shape::Shape},
-    lattice::ind::Ind,
+    crarray::{self, crarray::CRArray, ind::Ind, shape::Shape},
     math_utils::binomial_coefficient,
 };
 
@@ -23,7 +22,6 @@ pub trait LatticeTypes {
 }
 
 pub trait Field: Debug + Copy + Clone + Default {
-    // type LatticeMarker: LatticeTypes;
     type IndexType: Copy + Clone;
     type GridType;
 
@@ -634,3 +632,35 @@ impl<AnyL: LatticeTypes + Debug + Copy + Clone + Default> Field for EmptyField<A
 
     type GridType = AnyL;
 }
+
+struct Simulation<const NDIM: usize, SimParameterType, LatticeArt> {
+    pub shape: Shape<NDIM>,
+
+    pub lattice: LatticeArt,
+
+    // pub vertices: CRArray<{ NDIM + 1 }, VertexNode<NDIM, <LTTypes as LatticeTypes>::VertexType>>,
+    // pub edges: CRArray<{ NDIM + 1 }, EdgeNode<NDIM, <LTTypes as LatticeTypes>::EdgeType>>,
+    // pub faces: CRArray<{ NDIM + 1 }, FaceNode<NDIM, <LTTypes as LatticeTypes>::FaceType>>,
+    // pub cubes: CRArray<{ NDIM + 1 }, CubeNode<NDIM, <LTTypes as LatticeTypes>::CubeType>>,
+    pub sim_parameters: SimParameterType,
+}
+
+struct Cubical<const NDIM: usize, LTTypes: LatticeTypes>
+where
+    [(); NDIM + 1]:,
+    [(); NDIM * 2]:,
+    [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
+    [(); 2 * binomial_coefficient(NDIM, 2)]:,
+    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
+    [(); 2 * (NDIM - 2)]:,
+    [(); 8 * binomial_coefficient(NDIM, 3)]:,
+{
+    pub vertices: CRArray<{ NDIM + 1 }, VertexNode<NDIM, <LTTypes as LatticeTypes>::VertexType>>,
+    pub edges: CRArray<{ NDIM + 1 }, EdgeNode<NDIM, <LTTypes as LatticeTypes>::EdgeType>>,
+    pub faces: CRArray<{ NDIM + 1 }, FaceNode<NDIM, <LTTypes as LatticeTypes>::FaceType>>,
+    pub cubes: CRArray<{ NDIM + 1 }, CubeNode<NDIM, <LTTypes as LatticeTypes>::CubeType>>,
+}
+
+type CubicalSim<const NDIM: usize, SimParameter, L> =
+    Simulation<NDIM, SimParameter, Cubical<NDIM, L>>;
