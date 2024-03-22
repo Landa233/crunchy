@@ -10,7 +10,7 @@ use self::edge_connections::{
     CubeConnections, EdgeConnections, FaceConnections, VertexConnections,
 };
 
-use super::lattice::{Field, Node, SimParameter};
+use super::fields::{Field, Node, SimParameter};
 
 pub trait CubicalFields {
     const NDIM: usize;

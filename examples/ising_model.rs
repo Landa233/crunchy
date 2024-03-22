@@ -5,7 +5,7 @@ use crunchy::{
     crarray::{ind::Ind, shape::Shape},
     lattice::{
         cubical_lattice::{CubicalFields, CubicalLattice},
-        lattice::{EmptyField, Field, SimParameter, UpdateField},
+        fields::{EmptyField, Field, SimParameter, UpdateField},
         simulation::simulation::CubicalSimulation,
     },
 };

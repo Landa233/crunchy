@@ -1,3 +1,3 @@
 pub mod cubical_lattice;
-pub mod lattice;
+pub mod fields;
 pub mod simulation;

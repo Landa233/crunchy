@@ -1,249 +1,16 @@
-#![allow(
-    dead_code,
-    unused_variables,
-    unused_imports,
-    unused_macros,
-    incomplete_features
-)]
+#![allow(unused_macros, incomplete_features)]
 #![feature(generic_const_exprs)]
 
-use std::{f32::consts::PI, fmt, fs::File, ops::Deref, thread, time::Instant};
+use std::{f32::consts::PI, fs::File, thread, time::Instant};
 
-use crunchy::{
-    crarray::shape::Shape,
-    lattice::{
-        cubical_lattice::{CubicalFields, CubicalLattice},
-        lattice::{EmptyField, Field, SimParameter, UpdateField},
-        simulation::simulation::CubicalSimulation,
-    },
-    math_utils::binomial_coefficient,
-};
+use crunchy::crarray::shape::Shape;
 use ndarray::{Array, IxDyn};
-use rand::Rng;
-
-#[derive(Debug, Clone, Copy, Default)]
-struct EdgeField<const NDIM: usize, const ZORDER: usize> {
-    phase: usize,
-}
-
-impl<const NDIM: usize, const ZORDER: usize> Field for EdgeField<NDIM, ZORDER>
-where
-    [(); NDIM + 1]:,
-    [(); NDIM * 2]:,
-    [(); 2 * (NDIM - 1)]:,
-    [(); 4 * binomial_coefficient(NDIM, 2)]:,
-    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
-    [(); 2 * (NDIM - 2)]:,
-    [(); 8 * binomial_coefficient(NDIM, 3)]:,
-{
-    type IndexType = [usize; NDIM + 1];
-    // type SimType = Lattice<NDIM, ZNLatticeTypes<NDIM, ZORDER>>;
-    type SimType = CubicalSimulation<NDIM, ZNLatticeTypes<NDIM, ZORDER>, ZNParameters<ZORDER>>;
-}
-
-impl<const NDIM: usize, const ZORDER: usize> UpdateField for EdgeField<NDIM, ZORDER>
-where
-    [(); NDIM + 1]:,
-    [(); NDIM * 2]:,
-    [(); 2 * (NDIM - 1)]:,
-    [(); 4 * binomial_coefficient(NDIM, 2)]:,
-    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
-    [(); 2 * (NDIM - 2)]:,
-    [(); 8 * binomial_coefficient(NDIM, 3)]:,
-{
-    fn update(node_index: Self::IndexType, grid: &mut Self::SimType, new_field: Self) -> Self {
-        let old_field = grid.edges[node_index].data;
-        grid.edges[node_index].data = new_field;
-
-        let faces = grid.edges[node_index].graph_connections.faces;
-        for plaquette_index in faces.iter() {
-            PlaquetteField::<NDIM, ZORDER>::rebuild(*plaquette_index, grid);
-        }
-
-        let cubes = grid.edges[node_index].graph_connections.cubes;
-        for cube_index in cubes.iter() {
-            MonopoleField::<NDIM, ZORDER>::rebuild(*cube_index, grid);
-        }
-
-        old_field
-    }
-
-    fn energy(node_index: Self::IndexType, grid: &mut Self::SimType) -> f32 {
-        let mut action = 0.;
-        let ZNParameters {
-            beta,
-            cosines,
-            lambda,
-        } = grid.sim_parameters;
-
-        for plaquette_id in grid.edges[node_index].graph_connections.faces.iter() {
-            action += beta * (1. - 1. * cosines[grid.faces[*plaquette_id].data.holonomy])
-        }
-
-        for cube_id in grid.edges[node_index].graph_connections.cubes.iter() {
-            action += lambda * grid.cubes[*cube_id].data.charge.abs() as f32;
-        }
-
-        action
-    }
-
-    fn init() -> impl FnMut([usize; NDIM + 1]) -> Self
-    where
-        [(); NDIM + 1]:,
-    {
-        |node_index: Self::IndexType| EdgeField::<NDIM, ZORDER> { phase: 0 }
-    }
-}
-
-#[derive(Debug, Clone, Copy, Default)]
-struct PlaquetteField<const NDIM: usize, const ZORDER: usize> {
-    holonomy: usize,
-    dirac_string: isize,
-}
-
-impl<const NDIM: usize, const ZORDER: usize> fmt::Display for PlaquetteField<NDIM, ZORDER> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "PlaquetteField: {}", self.holonomy)
-    }
-}
-
-impl<const NDIM: usize, const ZORDER: usize> Field for PlaquetteField<NDIM, ZORDER>
-where
-    [(); NDIM + 1]:,
-    [(); NDIM * 2]:,
-    [(); 2 * (NDIM - 1)]:,
-    [(); 4 * binomial_coefficient(NDIM, 2)]:,
-    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
-    [(); 2 * (NDIM - 2)]:,
-    [(); 8 * binomial_coefficient(NDIM, 3)]:,
-{
-    type IndexType = [usize; NDIM + 1];
-    type SimType = CubicalSimulation<NDIM, ZNLatticeTypes<NDIM, ZORDER>, ZNParameters<ZORDER>>;
-
-    fn rebuild(node_index: Self::IndexType, grid: &mut Self::SimType) {
-        let edges = grid.faces[node_index].graph_connections.edges;
-
-        let mut holonomy = 2 * ZORDER;
-        holonomy += grid.edges[edges[0]].data.phase;
-        holonomy -= grid.edges[edges[1]].data.phase;
-        holonomy += grid.edges[edges[2]].data.phase;
-        holonomy -= grid.edges[edges[3]].data.phase;
-
-        grid.faces[node_index].data.holonomy = holonomy % ZORDER;
-
-        let dirac_string = calculate_dirac_string::<NDIM, ZORDER>(node_index, grid);
-        grid.faces[node_index].data.dirac_string = dirac_string;
-    }
-}
-
-fn calculate_dirac_string<const NDIM: usize, const ZORDER: usize>(
-    face_index: [usize; NDIM + 1],
-    grid: &CubicalSimulation<NDIM, ZNLatticeTypes<NDIM, ZORDER>, ZNParameters<ZORDER>>,
-) -> isize
-where
-    [(); NDIM + 1]:,
-    [(); NDIM * 2]:,
-    [(); 2 * (NDIM - 1)]:,
-    [(); 4 * binomial_coefficient(NDIM, 2)]:,
-    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
-    [(); 2 * (NDIM - 2)]:,
-    [(); 8 * binomial_coefficient(NDIM, 3)]:,
-{
-    fn shift<const ZORDER: usize>(phase: usize) -> isize {
-        if phase <= ZORDER / 2 {
-            return phase as isize;
-        }
-        return phase as isize - ZORDER as isize;
-    }
-
-    let mut windings = 0;
-    let edges = grid.faces[face_index].graph_connections.edges;
-    windings += shift::<ZORDER>(grid.edges[edges[0]].data.phase);
-    windings -= shift::<ZORDER>(grid.edges[edges[1]].data.phase);
-    windings += shift::<ZORDER>(grid.edges[edges[2]].data.phase);
-    windings -= shift::<ZORDER>(grid.edges[edges[3]].data.phase);
-
-    if ZORDER != 3 {
-        panic!("Only implemented for Z3")
-    }
-
-    let mut res = 0;
-    // For ZORDER > 3, windings of 2?
-    if windings < -(ZORDER as isize) / 2 {
-        res = -1;
-    }
-    if windings > ZORDER as isize / 2 {
-        res = 1;
-    }
-
-    res
-}
-
-#[derive(Debug, Clone, Copy, Default)]
-struct MonopoleField<const NDIM: usize, const ZORDER: usize> {
-    charge: isize,
-}
-
-impl<const NDIM: usize, const ZORDER: usize> Field for MonopoleField<NDIM, ZORDER>
-where
-    [(); NDIM + 1]:,
-    [(); NDIM * 2]:,
-    [(); 2 * (NDIM - 1)]:,
-    [(); 4 * binomial_coefficient(NDIM, 2)]:,
-    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
-    [(); 2 * (NDIM - 2)]:,
-    [(); 8 * binomial_coefficient(NDIM, 3)]:,
-{
-    type IndexType = [usize; NDIM + 1];
-    type SimType = CubicalSimulation<NDIM, ZNLatticeTypes<NDIM, ZORDER>, ZNParameters<ZORDER>>;
-
-    fn rebuild(node_index: Self::IndexType, grid: &mut Self::SimType) {
-        let faces = grid.cubes[node_index].graph_connections.faces;
-
-        let mut charge = 0;
-        let mut alternator = 1;
-        for face_index in faces.iter() {
-            charge += alternator * grid.faces[*face_index].data.dirac_string;
-            alternator *= -1;
-        }
-
-        grid.cubes[node_index].data.charge = charge;
-    }
-}
-
-#[derive(Debug, Clone, Copy, Default)]
-struct ZNLatticeTypes<const NDIM: usize, const ZORDER: usize> {}
-
-impl<const NDIM: usize, const ZORDER: usize> CubicalFields for ZNLatticeTypes<NDIM, ZORDER>
-where
-    [(); NDIM + 1]:,
-    [(); NDIM * 2]:,
-    [(); 2 * (NDIM - 1)]:,
-    [(); 4 * binomial_coefficient(NDIM, 2)]:,
-    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
-    [(); 2 * (NDIM - 2)]:,
-    [(); 8 * binomial_coefficient(NDIM, 3)]:,
-{
-    const NDIM: usize = NDIM;
-
-    type VertexField = EmptyField<ZNLatticeTypes<NDIM, ZORDER>>;
-    type EdgeField = EdgeField<NDIM, ZORDER>;
-    type FaceField = PlaquetteField<NDIM, ZORDER>;
-    type CubeField = MonopoleField<NDIM, ZORDER>;
-}
-
-#[derive(Debug, Clone, Copy)]
-struct ZNParameters<const ZORDER: usize> {
-    beta: f32,
-    cosines: [f32; ZORDER],
-    lambda: f32,
-}
 
 fn generate_cosine<const ZORDER: usize>() -> [f32; ZORDER] {
     let pi = std::f32::consts::PI;
     let mut res = [0.0; ZORDER];
 
-    // Generate perfectly symmetric cosine, otherwise this lead to symmetry breaking
+    // Generate perfectly symmetric cosine, otherwise this leads to symmetry breaking
     for i in 0..(ZORDER / 2 + 1) {
         res[i] = (i as f32 * 2.0 * pi / ZORDER as f32).cos();
         if i != 0 {
@@ -254,10 +21,8 @@ fn generate_cosine<const ZORDER: usize>() -> [f32; ZORDER] {
     res
 }
 
-impl<const ZORDER: usize> SimParameter for ZNParameters<ZORDER> {}
-
 fn record_polyakov_loops<const ZORDER: usize>(
-    sim: &mut Simulation<ZORDER>,
+    sim: &mut Experiment<ZORDER>,
     complex_roots: [[f32; 2]; ZORDER],
     recordings: usize,
 ) -> Array<[f32; 2], IxDyn> {
@@ -315,16 +80,7 @@ fn polyakov_record_range<const ZORDER: usize>(
             lambda,
         };
 
-        // let lattice = Lattice::<4, ZNLatticeTypes<4, ZORDER>>::new(grid_shape, sim_pars);
-
-        // let mut sim: Simulation<ZORDER> = Simulation { sim: lattice };
-
-        // let mut sim = CubicalSimulation::<4, ZNLatticeTypes<4, ZORDER>, ZNParameters<ZORDER>> {
-        //     lattice: CubicalLattice::<4, ZNLatticeTypes<4, ZORDER>>::new(grid_shape),
-        //     sim_parameters: sim_pars,
-        // };
-
-        let mut sim = Simulation::<ZORDER>::new(grid_shape, sim_pars);
+        let mut sim = Experiment::<ZORDER>::new(grid_shape, sim_pars);
 
         let a = record_polyakov_loops::<ZORDER>(&mut sim, complex_roots, recordings);
 
@@ -428,48 +184,17 @@ fn polyakov_record_range_threaded<const ZORDER: usize>(
     return res;
 }
 
-struct Simulation<const ZORDER: usize> {
-    sim: CubicalSimulation<4, ZNLatticeTypes<4, ZORDER>, ZNParameters<ZORDER>>,
-}
-
-impl<const ZORDER: usize> Simulation<ZORDER> {
-    fn new(shape: Shape<4>, sim_parameters: ZNParameters<ZORDER>) -> Self {
-        let sim = CubicalSimulation::<4, ZNLatticeTypes<4, ZORDER>, ZNParameters<ZORDER>> {
-            lattice: CubicalLattice::<4, ZNLatticeTypes<4, ZORDER>>::new(shape),
-            sim_parameters,
-        };
-
-        Simulation { sim }
-    }
-
-    fn sweep(&mut self) {
-        let edge_shape = self.edges.shape();
-        let mut rng_gen = rand::thread_rng();
-
-        for edge_index in self.sim.edges.shape().iter() {
-            let new_edge = EdgeField {
-                phase: rng_gen.gen_range(0..ZORDER),
-            };
-            EdgeField::metropolis_step(edge_index, &mut self.sim, new_edge, &mut rng_gen)
-        }
-    }
-}
-
-impl<const ZORDER: usize> Deref for Simulation<ZORDER> {
-    type Target = CubicalSimulation<4, ZNLatticeTypes<4, ZORDER>, ZNParameters<ZORDER>>;
-    fn deref(&self) -> &Self::Target {
-        &self.sim
-    }
-}
-
 use byteorder::{LittleEndian, WriteBytesExt};
 use npyz::{
     npz, AutoSerialize, DType, Field as NpyField, NpyWriter, Serialize, TypeWrite, WriterBuilder,
 };
+use rand::Rng;
+use z_n_gauge::{experiment::experiment::Experiment, gauge_fields::lattice::ZNParameters};
 use zip::write::FileOptions;
 
 pub struct Loop {
     pub beta: f32,
+    // Configurations, where the data is complex roots interpretation of Z_n
     pub data: Array<[f32; 2], IxDyn>,
 }
 
@@ -562,7 +287,7 @@ fn main() {
         beta_range: [0.49, 0.56],
         steps: 24,
         number_of_threads: 8,
-        recordings: 5000,
+        recordings: 1,
         grid_shape: shape,
         thermalization_steps: 0,
         lambda,
