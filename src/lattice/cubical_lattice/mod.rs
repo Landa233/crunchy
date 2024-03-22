@@ -1,0 +1,395 @@
+pub mod edge_connections;
+
+use crate::crarray::ind::Ind;
+use crate::{
+    crarray::{crarray::CRArray, shape::Shape},
+    math_utils::binomial_coefficient,
+};
+
+use self::edge_connections::{
+    CubeConnections, EdgeConnections, FaceConnections, VertexConnections,
+};
+
+use super::lattice::{Field, Node, SimParameter};
+
+pub trait CubicalFields {
+    const NDIM: usize;
+
+    type VertexField: Field;
+    type EdgeField: Field;
+    type FaceField: Field;
+    type CubeField: Field;
+}
+
+type VertexNode<const NDIM: usize, FieldType> = Node<VertexConnections<NDIM>, FieldType>;
+type EdgeNode<const NDIM: usize, FieldType> = Node<EdgeConnections<NDIM>, FieldType>;
+type FaceNode<const NDIM: usize, FieldType> = Node<FaceConnections<NDIM>, FieldType>;
+type CubeNode<const NDIM: usize, FieldType> = Node<CubeConnections<NDIM>, FieldType>;
+
+pub struct CubicalLattice<const NDIM: usize, CuFi: CubicalFields>
+where
+    [(); NDIM + 1]:,
+    [(); NDIM * 2]:,
+    [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
+    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
+    [(); 2 * (NDIM - 2)]:,
+    [(); 8 * binomial_coefficient(NDIM, 3)]:,
+{
+    pub shape: Shape<NDIM>,
+
+    pub vertices: CRArray<{ NDIM + 1 }, VertexNode<NDIM, CuFi::VertexField>>,
+    pub edges: CRArray<{ NDIM + 1 }, EdgeNode<NDIM, CuFi::EdgeField>>,
+    pub faces: CRArray<{ NDIM + 1 }, FaceNode<NDIM, CuFi::FaceField>>,
+    pub cubes: CRArray<{ NDIM + 1 }, CubeNode<NDIM, CuFi::CubeField>>,
+}
+
+impl<const NDIM: usize, CuFi: CubicalFields> CubicalLattice<NDIM, CuFi>
+where
+    [(); NDIM + 1]:,
+    [(); NDIM * 2]:,
+    [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
+    [(); 2 * binomial_coefficient(NDIM, 2)]:,
+    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
+    [(); 2 * (NDIM - 2)]:,
+    [(); 8 * binomial_coefficient(NDIM, 3)]:,
+{
+    pub fn new(shape: Shape<NDIM>) -> Self {
+        let vertices: CRArray<
+            _,
+            Node<VertexConnections<NDIM>, <CuFi as CubicalFields>::VertexField>,
+        > = CRArray::zeros(Shape::prepend(1, shape));
+        let edges = CRArray::zeros(Shape::prepend(NDIM, shape));
+        let faces = CRArray::zeros(Shape::prepend(binomial_coefficient(NDIM, 2), shape));
+        let cubes = CRArray::zeros(Shape::prepend(binomial_coefficient(NDIM, 3), shape));
+
+        let mut res = Self {
+            shape,
+            vertices,
+            edges,
+            faces,
+            cubes,
+        };
+
+        if NDIM > 2 {
+            res.initialize_cubes();
+        }
+        res.initialize_faces();
+        res.initialize_edges();
+
+        res
+    }
+
+    fn standard_basis() -> [(usize, [usize; NDIM]); NDIM] {
+        let mut res = [(0, [0; NDIM]); NDIM];
+        for i in 0..NDIM {
+            res[i].0 = i;
+            res[i].1[i] = 1;
+        }
+        res
+    }
+
+    fn cube_planes() -> [[usize; 3]; binomial_coefficient(NDIM, 3)] {
+        let mut res = [[0; 3]; binomial_coefficient(NDIM, 3)];
+
+        let mut counter = 0;
+        for i in 0..NDIM {
+            for j in (i + 1)..NDIM {
+                for k in (j + 1)..NDIM {
+                    res[counter] = [i, j, k];
+                    counter += 1;
+                }
+            }
+        }
+
+        res
+    }
+
+    pub fn initialize_cubes(&mut self) {
+        let cube_shape = self.cubes.shape();
+
+        let standard_basis = Self::standard_basis();
+
+        let cube_planes = Self::cube_planes();
+
+        let grid_dim = self.shape.dim;
+
+        let mut cubes_to_faces: CRArray<{ NDIM + 1 }, Vec<[usize; NDIM + 1]>> =
+            CRArray::zeros(self.faces.shape());
+
+        // --------------------------------------------------------
+        // CUBES <-> FACES
+        // --------------------------------------------------------
+        for index in cube_shape.iter() {
+            let cube_dirs = cube_planes[index[0]];
+            let e_1 = standard_basis[cube_dirs[0]];
+            let e_2 = standard_basis[cube_dirs[1]];
+            let e_3 = standard_basis[cube_dirs[2]];
+
+            let anchor: Ind<NDIM> = Ind::new(index[1..].try_into().unwrap());
+
+            let mut faces: Vec<[usize; NDIM + 1]> = vec![];
+
+            // This is where the periodic boundary conditions are implemented
+            faces.push(
+                *(((anchor + e_1.1) % grid_dim).prepend(Self::plaquette_plane(e_2.0, e_3.0))),
+            );
+            faces.push(*((anchor).prepend(Self::plaquette_plane(e_2.0, e_3.0))));
+
+            // SWITCHED THE ORDER HERE BECAUSE OF ORIENTATIONS SO THAT FOR THE DIFFERENTIAL
+            // WE CAN JUST TAKE THE ALTERNATING SUM OF THE FACES
+            faces.push(*((anchor).prepend(Self::plaquette_plane(e_1.0, e_3.0))));
+            faces.push(
+                *(((anchor + e_2.1) % grid_dim).prepend(Self::plaquette_plane(e_1.0, e_3.0))),
+            );
+
+            faces.push(
+                *(((anchor + e_3.1) % grid_dim).prepend(Self::plaquette_plane(e_1.0, e_2.0))),
+            );
+            faces.push(*((anchor).prepend(Self::plaquette_plane(e_1.0, e_2.0))));
+
+            for face in faces.iter() {
+                cubes_to_faces[*face].push(index);
+            }
+
+            self.cubes[index].graph_connections.faces = faces.try_into().unwrap();
+        }
+
+        for index in self.faces.shape().iter() {
+            self.faces[index].graph_connections.cubes =
+                cubes_to_faces[index].clone().try_into().unwrap();
+        }
+
+        // --------------------------------------------------------
+        // CUBES <-> EDGES
+        // --------------------------------------------------------
+
+        let mut cube_to_edges: CRArray<{ NDIM + 1 }, Vec<[usize; NDIM + 1]>> =
+            CRArray::zeros(self.edges.shape());
+
+        for cube_index in cube_shape.iter() {
+            let mut edges = vec![];
+
+            let cube_dirs = cube_planes[cube_index[0]];
+            let e_1 = standard_basis[cube_dirs[0]];
+            let e_2 = standard_basis[cube_dirs[1]];
+            let e_3 = standard_basis[cube_dirs[2]];
+
+            let anchor: Ind<NDIM> = Ind::new(cube_index[1..].try_into().unwrap());
+
+            for [v1, v2, v3] in [[e_1, e_2, e_3], [e_2, e_3, e_1], [e_3, e_1, e_2]] {
+                edges.push(*(anchor.prepend(v1.0)));
+                edges.push(*(((anchor + v2.1) % grid_dim).prepend(v1.0)));
+                edges.push(*(((anchor + v3.1) % grid_dim).prepend(v1.0)));
+                edges.push(*(((anchor + v2.1 + v3.1) % grid_dim).prepend(v1.0)));
+            }
+
+            for edge in edges.iter() {
+                cube_to_edges[*edge].push(cube_index);
+            }
+
+            self.cubes[cube_index].graph_connections.edges = edges.try_into().unwrap();
+        }
+
+        for index in self.edges.shape().iter() {
+            self.edges[index].graph_connections.cubes =
+                cube_to_edges[index].clone().try_into().unwrap();
+        }
+
+        // --------------------------------------------------------
+        // CUBES <-> VERTICES
+        // --------------------------------------------------------
+        let mut cube_to_vertices: CRArray<{ NDIM + 1 }, Vec<[usize; NDIM + 1]>> =
+            CRArray::zeros(self.vertices.shape());
+
+        for cube_index in cube_shape.iter() {
+            let mut vertices = vec![];
+
+            let cube_dirs = cube_planes[cube_index[0]];
+            let e_1 = standard_basis[cube_dirs[0]];
+            let e_2 = standard_basis[cube_dirs[1]];
+            let e_3 = standard_basis[cube_dirs[2]];
+
+            let anchor: Ind<NDIM> = Ind::new(cube_index[1..].try_into().unwrap());
+
+            vertices.push(*anchor.prepend(0));
+            vertices.push(*((anchor + e_1.1) % grid_dim).prepend(0));
+            vertices.push(*((anchor + e_2.1) % grid_dim).prepend(0));
+            vertices.push(*((anchor + e_3.1) % grid_dim).prepend(0));
+            vertices.push(*((anchor + e_1.1 + e_2.1) % grid_dim).prepend(0));
+            vertices.push(*((anchor + e_1.1 + e_3.1) % grid_dim).prepend(0));
+            vertices.push(*((anchor + e_2.1 + e_3.1) % grid_dim).prepend(0));
+            vertices.push(*((anchor + e_1.1 + e_2.1 + e_3.1) % grid_dim).prepend(0));
+
+            for vertex in vertices.iter() {
+                cube_to_vertices[*vertex].push(cube_index);
+            }
+
+            self.cubes[cube_index].graph_connections.vertices = vertices.try_into().unwrap();
+        }
+
+        for index in self.vertices.shape().iter() {
+            self.vertices[index].graph_connections.cubes =
+                cube_to_vertices[index].clone().try_into().unwrap();
+        }
+    }
+
+    fn initialize_faces(&mut self) {
+        let face_shape = self.faces.shape();
+
+        let standard_basis = Self::standard_basis();
+
+        let face_planes = Self::face_planes();
+
+        let grid_dim = self.shape.dim;
+
+        // --------------------------------------------------------
+        // FACES <-> EDGES
+        // --------------------------------------------------------
+        let mut faces_to_edges: CRArray<{ NDIM + 1 }, Vec<[usize; NDIM + 1]>> =
+            CRArray::zeros(self.edges.shape());
+
+        for index in face_shape.iter() {
+            let face_dirs = face_planes[index[0]];
+            let e_1 = standard_basis[face_dirs[0]];
+            let e_2 = standard_basis[face_dirs[1]];
+
+            let anchor: Ind<NDIM> = Ind::new(index[1..].try_into().unwrap());
+
+            let mut edges: Vec<[usize; NDIM + 1]> = vec![];
+
+            edges.push(*((anchor + e_1.1) % grid_dim).prepend(e_2.0));
+            edges.push(*((anchor).prepend(e_2.0)));
+
+            edges.push(*((anchor).prepend(e_1.0)));
+            edges.push(*((anchor + e_2.1) % grid_dim).prepend(e_1.0));
+
+            for edge in edges.iter() {
+                faces_to_edges[*edge].push(index);
+            }
+
+            self.faces[index].graph_connections.edges = edges.try_into().unwrap();
+        }
+
+        for index in self.edges.shape().iter() {
+            self.edges[index].graph_connections.faces =
+                faces_to_edges[index].clone().try_into().unwrap();
+        }
+
+        // --------------------------------------------------------
+        // FACES <-> VERTICES
+        // --------------------------------------------------------
+        let mut faces_to_vertices: CRArray<{ NDIM + 1 }, Vec<[usize; NDIM + 1]>> =
+            CRArray::zeros(self.vertices.shape());
+
+        for index in face_shape.iter() {
+            let face_dirs = face_planes[index[0]];
+            let e_1 = standard_basis[face_dirs[0]];
+            let e_2 = standard_basis[face_dirs[1]];
+
+            let anchor: Ind<NDIM> = Ind::new(index[1..].try_into().unwrap());
+
+            let mut vertices: Vec<[usize; NDIM + 1]> = vec![];
+
+            vertices.push(*anchor.prepend(0));
+            vertices.push(*((anchor + e_1.1) % grid_dim).prepend(0));
+            vertices.push(*((anchor + e_1.1 + e_2.1) % grid_dim).prepend(0));
+            vertices.push(*((anchor + e_2.1) % grid_dim).prepend(0));
+
+            for vertex in vertices.iter() {
+                faces_to_vertices[*vertex].push(index);
+            }
+
+            self.faces[index].graph_connections.vertices = vertices.try_into().unwrap();
+        }
+
+        for index in self.vertices.shape().iter() {
+            self.vertices[index].graph_connections.faces =
+                faces_to_vertices[index].clone().try_into().unwrap();
+        }
+    }
+
+    fn initialize_edges(&mut self) {
+        let edge_shape = self.edges.shape();
+
+        let standard_basis = Self::standard_basis();
+
+        let grid_dim = self.shape.dim;
+
+        // --------------------------------------------------------
+        // EDGES <-> VERTICES
+        // --------------------------------------------------------
+        let mut edges_to_vertices: CRArray<{ NDIM + 1 }, Vec<[usize; NDIM + 1]>> =
+            CRArray::zeros(self.vertices.shape());
+
+        for index in edge_shape.iter() {
+            let anchor: Ind<NDIM> = Ind::new(index[1..].try_into().unwrap());
+
+            let mut vertices: Vec<[usize; NDIM + 1]> = vec![];
+
+            let v = standard_basis[index[0]].1;
+
+            vertices.push(*anchor.prepend(0));
+            vertices.push(*((anchor + v) % grid_dim).prepend(0));
+
+            for vertex in vertices.iter() {
+                edges_to_vertices[*vertex].push(index);
+            }
+
+            self.edges[index].graph_connections.vertices = vertices.try_into().unwrap();
+        }
+
+        for index in self.vertices.shape().iter() {
+            self.vertices[index].graph_connections.edges =
+                edges_to_vertices[index].clone().try_into().unwrap();
+        }
+    }
+
+    fn face_planes() -> [[usize; 2]; binomial_coefficient(NDIM, 2)] {
+        let mut res = [[0; 2]; binomial_coefficient(NDIM, 2)];
+
+        let mut counter = 0;
+        for i in 0..NDIM {
+            for j in (i + 1)..NDIM {
+                res[counter] = [i, j];
+                counter += 1;
+            }
+        }
+
+        res
+    }
+
+    fn plaquette_plane(i: usize, j: usize) -> usize {
+        if i >= j {
+            panic!("The set ({}, {}) is not ordered", i, j)
+        }
+
+        debug_assert!(
+            i < NDIM && j < NDIM,
+            " Either i: {i} or j: {j} are bigger than {NDIM}"
+        );
+
+        let mut a: usize = 0;
+        for k in 1..(i + 1) {
+            a += NDIM - k
+        }
+
+        return a + (j - i) - 1;
+    }
+
+    fn cube_directions() -> [[usize; 3]; binomial_coefficient(NDIM, 3)] {
+        let mut cube_directions = [[0; 3]; binomial_coefficient(NDIM, 3)];
+        let mut counter = 0;
+        for i in 0..NDIM {
+            for j in (i + 1)..NDIM {
+                for k in (j + 1)..NDIM {
+                    cube_directions[counter] = [i, j, k];
+                    counter += 1;
+                }
+            }
+        }
+
+        cube_directions
+    }
+}

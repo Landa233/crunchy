@@ -11,7 +11,11 @@ use std::{f32::consts::PI, fmt, fs::File, ops::Deref, thread, time::Instant};
 
 use crunchy::{
     crarray::shape::Shape,
-    lattice::lattice::{EmptyField, Field, Lattice, LatticeTypes, SimParameter, UpdateField},
+    lattice::{
+        cubical_lattice::{CubicalFields, CubicalLattice},
+        lattice::{EmptyField, Field, SimParameter, UpdateField},
+        simulation::simulation::CubicalSimulation,
+    },
     math_utils::binomial_coefficient,
 };
 use ndarray::{Array, IxDyn};
@@ -33,7 +37,8 @@ where
     [(); 8 * binomial_coefficient(NDIM, 3)]:,
 {
     type IndexType = [usize; NDIM + 1];
-    type GridType = Lattice<NDIM, ZNLatticeTypes<NDIM, ZORDER>>;
+    // type SimType = Lattice<NDIM, ZNLatticeTypes<NDIM, ZORDER>>;
+    type SimType = CubicalSimulation<NDIM, ZNLatticeTypes<NDIM, ZORDER>, ZNParameters<ZORDER>>;
 }
 
 impl<const NDIM: usize, const ZORDER: usize> UpdateField for EdgeField<NDIM, ZORDER>
@@ -46,7 +51,7 @@ where
     [(); 2 * (NDIM - 2)]:,
     [(); 8 * binomial_coefficient(NDIM, 3)]:,
 {
-    fn update(node_index: Self::IndexType, grid: &mut Self::GridType, new_field: Self) -> Self {
+    fn update(node_index: Self::IndexType, grid: &mut Self::SimType, new_field: Self) -> Self {
         let old_field = grid.edges[node_index].data;
         grid.edges[node_index].data = new_field;
 
@@ -63,7 +68,7 @@ where
         old_field
     }
 
-    fn energy(node_index: Self::IndexType, grid: &mut Self::GridType) -> f32 {
+    fn energy(node_index: Self::IndexType, grid: &mut Self::SimType) -> f32 {
         let mut action = 0.;
         let ZNParameters {
             beta,
@@ -113,9 +118,9 @@ where
     [(); 8 * binomial_coefficient(NDIM, 3)]:,
 {
     type IndexType = [usize; NDIM + 1];
-    type GridType = Lattice<NDIM, ZNLatticeTypes<NDIM, ZORDER>>;
+    type SimType = CubicalSimulation<NDIM, ZNLatticeTypes<NDIM, ZORDER>, ZNParameters<ZORDER>>;
 
-    fn rebuild(node_index: Self::IndexType, grid: &mut Self::GridType) {
+    fn rebuild(node_index: Self::IndexType, grid: &mut Self::SimType) {
         let edges = grid.faces[node_index].graph_connections.edges;
 
         let mut holonomy = 2 * ZORDER;
@@ -133,7 +138,7 @@ where
 
 fn calculate_dirac_string<const NDIM: usize, const ZORDER: usize>(
     face_index: [usize; NDIM + 1],
-    grid: &Lattice<NDIM, ZNLatticeTypes<NDIM, ZORDER>>,
+    grid: &CubicalSimulation<NDIM, ZNLatticeTypes<NDIM, ZORDER>, ZNParameters<ZORDER>>,
 ) -> isize
 where
     [(); NDIM + 1]:,
@@ -190,9 +195,9 @@ where
     [(); 8 * binomial_coefficient(NDIM, 3)]:,
 {
     type IndexType = [usize; NDIM + 1];
-    type GridType = Lattice<NDIM, ZNLatticeTypes<NDIM, ZORDER>>;
+    type SimType = CubicalSimulation<NDIM, ZNLatticeTypes<NDIM, ZORDER>, ZNParameters<ZORDER>>;
 
-    fn rebuild(node_index: Self::IndexType, grid: &mut Self::GridType) {
+    fn rebuild(node_index: Self::IndexType, grid: &mut Self::SimType) {
         let faces = grid.cubes[node_index].graph_connections.faces;
 
         let mut charge = 0;
@@ -209,7 +214,7 @@ where
 #[derive(Debug, Clone, Copy, Default)]
 struct ZNLatticeTypes<const NDIM: usize, const ZORDER: usize> {}
 
-impl<const NDIM: usize, const ZORDER: usize> LatticeTypes for ZNLatticeTypes<NDIM, ZORDER>
+impl<const NDIM: usize, const ZORDER: usize> CubicalFields for ZNLatticeTypes<NDIM, ZORDER>
 where
     [(); NDIM + 1]:,
     [(); NDIM * 2]:,
@@ -221,12 +226,10 @@ where
 {
     const NDIM: usize = NDIM;
 
-    type VertexType = EmptyField<ZNLatticeTypes<NDIM, ZORDER>>;
-    type EdgeType = EdgeField<NDIM, ZORDER>;
-    type FaceType = PlaquetteField<NDIM, ZORDER>;
-    type CubeType = MonopoleField<NDIM, ZORDER>;
-
-    type SimParameterType = ZNParameters<ZORDER>;
+    type VertexField = EmptyField<ZNLatticeTypes<NDIM, ZORDER>>;
+    type EdgeField = EdgeField<NDIM, ZORDER>;
+    type FaceField = PlaquetteField<NDIM, ZORDER>;
+    type CubeField = MonopoleField<NDIM, ZORDER>;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -258,7 +261,7 @@ fn record_polyakov_loops<const ZORDER: usize>(
     complex_roots: [[f32; 2]; ZORDER],
     recordings: usize,
 ) -> Array<[f32; 2], IxDyn> {
-    let grid_shape = sim.shape;
+    let grid_shape = sim.sim.shape;
     let [x_dim, y_dim, z_dim, t_dim] = grid_shape.dim;
 
     let res_shape = [recordings, x_dim, y_dim, z_dim];
@@ -273,7 +276,7 @@ fn record_polyakov_loops<const ZORDER: usize>(
                 for z in 0..z_dim {
                     let mut singe_loop = 0;
                     for t in 0..t_dim {
-                        let a = sim.edges[[3, x, y, z, t]];
+                        let a = sim.sim.edges[[3, x, y, z, t]];
                         singe_loop += a.data.phase;
                     }
                     singe_loop %= ZORDER;
@@ -312,9 +315,17 @@ fn polyakov_record_range<const ZORDER: usize>(
             lambda,
         };
 
-        let lattice = Lattice::<4, ZNLatticeTypes<4, ZORDER>>::new(grid_shape, sim_pars);
+        // let lattice = Lattice::<4, ZNLatticeTypes<4, ZORDER>>::new(grid_shape, sim_pars);
 
-        let mut sim: Simulation<ZORDER> = Simulation { sim: lattice };
+        // let mut sim: Simulation<ZORDER> = Simulation { sim: lattice };
+
+        // let mut sim = CubicalSimulation::<4, ZNLatticeTypes<4, ZORDER>, ZNParameters<ZORDER>> {
+        //     lattice: CubicalLattice::<4, ZNLatticeTypes<4, ZORDER>>::new(grid_shape),
+        //     sim_parameters: sim_pars,
+        // };
+
+        let mut sim = Simulation::<ZORDER>::new(grid_shape, sim_pars);
+
         let a = record_polyakov_loops::<ZORDER>(&mut sim, complex_roots, recordings);
 
         res.push((*beta, a));
@@ -418,12 +429,15 @@ fn polyakov_record_range_threaded<const ZORDER: usize>(
 }
 
 struct Simulation<const ZORDER: usize> {
-    sim: Lattice<4, ZNLatticeTypes<4, ZORDER>>,
+    sim: CubicalSimulation<4, ZNLatticeTypes<4, ZORDER>, ZNParameters<ZORDER>>,
 }
 
 impl<const ZORDER: usize> Simulation<ZORDER> {
     fn new(shape: Shape<4>, sim_parameters: ZNParameters<ZORDER>) -> Self {
-        let sim = Lattice::<4, ZNLatticeTypes<4, ZORDER>>::new(shape, sim_parameters);
+        let sim = CubicalSimulation::<4, ZNLatticeTypes<4, ZORDER>, ZNParameters<ZORDER>> {
+            lattice: CubicalLattice::<4, ZNLatticeTypes<4, ZORDER>>::new(shape),
+            sim_parameters,
+        };
 
         Simulation { sim }
     }
@@ -442,7 +456,7 @@ impl<const ZORDER: usize> Simulation<ZORDER> {
 }
 
 impl<const ZORDER: usize> Deref for Simulation<ZORDER> {
-    type Target = Lattice<4, ZNLatticeTypes<4, ZORDER>>;
+    type Target = CubicalSimulation<4, ZNLatticeTypes<4, ZORDER>, ZNParameters<ZORDER>>;
     fn deref(&self) -> &Self::Target {
         &self.sim
     }
@@ -538,35 +552,17 @@ pub fn create_writer<'a, W: std::io::Write, T: ?Sized + Serialize>(
 }
 
 fn main() {
-    // const LATTICEDIM: usize = 6;
-    // let shape = Shape::new([LATTICEDIM, LATTICEDIM, LATTICEDIM, LATTICEDIM]);
-    // const ZORDER: usize = 3;
-
-    // let mut sim = Simulation::<ZORDER>::new(
-    //     shape,
-    //     ZNParameters {
-    //         beta: 0.2,
-    //         cosines: generate_cosine::<ZORDER>(),
-    //     },
-    // );
-
-    // for _ in 0..3 {
-    //     sim.sweep();
-    // }
-
     const LATTICEDIM: usize = 7;
     let shape = Shape::new([LATTICEDIM, LATTICEDIM, LATTICEDIM, LATTICEDIM]);
     const ZORDER: usize = 3;
 
-    // for i in 0..6 {
-    // let lambda = 0.5 + i as f32 * 0.1;
     let lambda = 1.0;
 
     let polyakov_parameters = PolyakovParameters {
         beta_range: [0.49, 0.56],
         steps: 24,
         number_of_threads: 8,
-        recordings: 20000,
+        recordings: 5000,
         grid_shape: shape,
         thermalization_steps: 0,
         lambda,
@@ -584,11 +580,7 @@ fn main() {
         })
         .collect::<Vec<Loop>>();
 
-    // let mut name = format!("z_n_gauge/data_analysis/temp/mu_{:.2}", lambda);
-    // name = name.replace(".", "_");
-    // name = name + ".npz";
-
-    let name = "z_n_gauge/data_analysis/temp/transfer.npz";
+    let name = "z_n_gauge/data_analysis/temp/restructure_test.npz";
 
     let file = File::create(name).unwrap();
 
@@ -626,3 +618,5 @@ fn main() {
     println!("Time elapsed: {:?}", duration);
     // }
 }
+
+// fn main() {}
