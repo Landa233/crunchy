@@ -54,7 +54,7 @@ impl<const ZORDER: usize> Experiment<ZORDER> {
             let new_edge = EdgeField {
                 phase: self.rng_gen.gen_range(0..ZORDER),
             };
-            EdgeField::metropolis_step(edge_index, &mut self.sim, new_edge, &mut self.rng_gen)
+            EdgeField::metropolis_step(edge_index, &mut self.sim, new_edge, &mut self.rng_gen);
         }
     }
 }

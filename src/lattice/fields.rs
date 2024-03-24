@@ -27,23 +27,24 @@ pub trait UpdateField: Field {
         grid: &mut Self::SimType,
         new_field: Self,
         rng_gen: &mut R,
-    ) {
+    ) -> Update {
         let old_energy = Self::energy(node_index, grid);
         let old_field = Self::update(node_index, grid, new_field);
         let new_energy = Self::energy(node_index, grid);
 
         let delta_energy = new_energy - old_energy;
         if delta_energy < 0.0 {
-            return;
+            return Update::Accepted;
         }
 
         let acceptance_probability = (-delta_energy).exp();
         let random_number: f32 = rng_gen.gen_range(0.0..1.0);
         if random_number < acceptance_probability {
-            return;
+            return Update::Accepted;
         }
 
         Self::update(node_index, grid, old_field);
+        Update::Rejected
     }
 }
 
@@ -75,4 +76,9 @@ pub struct EmptyField<AnyL> {
 impl<AnyL: Debug + Copy + Clone + Default> Field for EmptyField<AnyL> {
     type IndexType = ();
     type SimType = AnyL;
+}
+
+pub enum Update {
+    Accepted,
+    Rejected,
 }
