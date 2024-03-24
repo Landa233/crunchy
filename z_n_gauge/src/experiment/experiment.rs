@@ -63,3 +63,31 @@ impl<const ZORDER: usize> Deref for Experiment<ZORDER> {
         &self.sim
     }
 }
+
+impl<const ZORDER: usize> PartialEq for Experiment<ZORDER> {
+    fn eq(&self, other: &Self) -> bool {
+        if self.rng_gen != other.rng_gen {
+            return false;
+        }
+        if self.sim.sim_parameters != other.sim.sim_parameters {
+            return false;
+        }
+        for edge_index in self.sim.edges.shape().iter() {
+            if self.sim.edges[edge_index].data != other.sim.edges[edge_index].data {
+                return false;
+            }
+        }
+        for face_index in self.sim.faces.shape().iter() {
+            if self.sim.faces[face_index].data != other.sim.faces[face_index].data {
+                return false;
+            }
+        }
+        for cube_index in self.sim.cubes.shape().iter() {
+            if self.sim.cubes[cube_index].data != other.sim.cubes[cube_index].data {
+                return false;
+            }
+        }
+
+        true
+    }
+}

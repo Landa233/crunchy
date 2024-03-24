@@ -29,7 +29,7 @@ where
     type CubeField = MonopoleField<NDIM, ZORDER>;
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ZNParameters<const ZORDER: usize> {
     pub beta: f32,
     pub cosines: [f32; ZORDER],

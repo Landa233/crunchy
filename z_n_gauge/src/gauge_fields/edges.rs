@@ -12,7 +12,7 @@ use super::{
     plaquettes::PlaquetteField,
 };
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct EdgeField<const NDIM: usize, const ZORDER: usize> {
     pub phase: usize,
 }

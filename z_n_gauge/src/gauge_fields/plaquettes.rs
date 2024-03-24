@@ -5,7 +5,7 @@ use crunchy::lattice::simulation::simulation::CubicalSimulation;
 use crunchy::math_utils::binomial_coefficient;
 use std::fmt;
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct PlaquetteField<const NDIM: usize, const ZORDER: usize> {
     pub holonomy: usize,
     pub dirac_string: isize,

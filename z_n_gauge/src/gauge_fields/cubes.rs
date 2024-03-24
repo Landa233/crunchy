@@ -5,7 +5,7 @@ use crunchy::{
 
 use super::lattice::{ZNLatticeTypes, ZNParameters};
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct MonopoleField<const NDIM: usize, const ZORDER: usize> {
     pub charge: isize,
 }

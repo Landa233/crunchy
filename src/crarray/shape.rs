@@ -86,6 +86,12 @@ impl<const NDIM: usize> Deref for Shape<NDIM> {
     }
 }
 
+impl<const NDIM: usize> From<[usize; NDIM]> for Shape<NDIM> {
+    fn from(dim: [usize; NDIM]) -> Self {
+        Self::new(dim)
+    }
+}
+
 #[derive(Debug)]
 pub struct ShapeIterator<const NDIM: usize> {
     shape: Shape<NDIM>,
