@@ -22,7 +22,7 @@ if not load_data_flag:
     print("Loading data")
 
     data = np.load(
-        'z_n_gauge/data_analysis/temp/restructure_test.npz')
+        'z_n_gauge/data_analysis/temp/restructure_test2.npz')
 
     raw_data = data["loops"]
     meta_data = data["meta_data"]

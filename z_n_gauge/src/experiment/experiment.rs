@@ -16,7 +16,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct ExperimentParameters {
+pub struct ExecutorParameters {
     pub shape: [usize; 4],
 
     pub z_order: usize,

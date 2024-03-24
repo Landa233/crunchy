@@ -59,25 +59,55 @@ fn generate_cosine<const ZORDER: usize>() -> [f32; ZORDER] {
 //     let exp_clone = experiment.clone();
 // }
 
-use z_n_gauge::{experiment::experiment::Experiment, gauge_fields::lattice::ZNParameters};
+use z_n_gauge::{
+    experiment::{
+        backup::backup_experiment,
+        experiment::{ExecutorParameters, Experiment},
+    },
+    gauge_fields::lattice::ZNParameters,
+};
 
 fn main() {
+    let beta = 0.1;
+    let lambda = 1.0;
+
     let sim_pars = ZNParameters {
-        beta: 0.5,
+        beta,
         cosines: generate_cosine(),
-        lambda: 1.0,
+        lambda,
     };
 
     let grid_shape = [4, 4, 4, 4];
 
     let mut experiment = Experiment::<3>::new(grid_shape.into(), sim_pars);
 
-    let mut exp_clone = experiment.clone();
+    for _ in 0..10 {
+        experiment.sweep();
+    }
 
-    println!("{:?}", experiment == exp_clone);
+    let experiment_parameters = ExecutorParameters {
+        shape: grid_shape,
+        z_order: 3,
+        beta,
+        lambda,
+        recordings: 10,
+        recording_skip: 1,
+        recordings_until_backup: 1,
+        rng_seed: 1,
+    };
 
-    experiment.sweep();
-    exp_clone.sweep();
+    let backup = backup_experiment(&experiment, experiment_parameters, 0);
 
-    println!("{:?}", experiment == exp_clone);
+    let restored_experiment: Experiment<3> = backup.reboot_experiment();
+
+    println!("{:?}", experiment == restored_experiment);
+
+    // let mut exp_clone = experiment.clone();
+
+    // println!("{:?}", experiment == exp_clone);
+
+    // experiment.sweep();
+    // exp_clone.sweep();
+
+    // println!("{:?}", experiment == exp_clone);
 }

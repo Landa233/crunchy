@@ -305,7 +305,7 @@ fn main() {
         })
         .collect::<Vec<Loop>>();
 
-    let name = "z_n_gauge/data_analysis/temp/restructure_test.npz";
+    let name = "z_n_gauge/data_analysis/temp/restructure_test2.npz";
 
     let file = File::create(name).unwrap();
 

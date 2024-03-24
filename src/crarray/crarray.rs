@@ -40,6 +40,10 @@ impl<const NDIM: usize, T> CRArray<NDIM, T> {
             array: self,
         }
     }
+
+    pub fn flat_data(&self) -> &[T] {
+        &self.flat_data
+    }
 }
 
 impl<const NDIM: usize, T> Index<[usize; NDIM]> for CRArray<NDIM, T> {
