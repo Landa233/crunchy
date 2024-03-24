@@ -1,11 +1,4 @@
-use std::{fs::File, io::Write};
-
-use crunchy::lattice::simulation::simulation::Simulation;
-use rand::{RngCore, SeedableRng};
-use z_n_gauge::{
-    experiment::{backup::LatticeBackup, experiment::Experiment},
-    gauge_fields::lattice::ZNParameters,
-};
+use z_n_gauge::{experiment::experiment::Experiment, gauge_fields::lattice::ZNParameters};
 
 fn generate_cosine<const ZORDER: usize>() -> [f32; ZORDER] {
     let pi = std::f32::consts::PI;
@@ -59,4 +52,6 @@ fn main() {
     let grid_shape = [4, 4, 4, 4];
 
     let mut experiment = Experiment::<3>::new(grid_shape.into(), sim_pars);
+
+    let exp_clone = experiment.clone();
 }

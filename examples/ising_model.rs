@@ -5,9 +5,9 @@ use crunchy::{
     crarray::{ind::Ind, shape::Shape},
     lattice::{
         cubical_lattice::{CubicalFields, CubicalLattice},
-        fields::{EmptyField, Field, SimParameter, UpdateField},
-        simulation::simulation::CubicalSimulation,
+        fields::{EmptyField, Field, UpdateField},
     },
+    simulation::simulation::{CubicalSimulation, SimParameter},
 };
 
 #[derive(Debug, Copy, Clone, Default)]

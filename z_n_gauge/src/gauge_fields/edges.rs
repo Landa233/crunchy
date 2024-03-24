@@ -1,9 +1,7 @@
 use crunchy::{
-    lattice::{
-        fields::{Field, UpdateField},
-        simulation::simulation::CubicalSimulation,
-    },
+    lattice::fields::{Field, UpdateField},
     math_utils::binomial_coefficient,
+    simulation::simulation::CubicalSimulation,
 };
 
 use super::{

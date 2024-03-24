@@ -1,8 +1,8 @@
 use crate::gauge_fields::lattice::ZNLatticeTypes;
 use crate::gauge_fields::lattice::ZNParameters;
 use crunchy::lattice::fields::Field;
-use crunchy::lattice::simulation::simulation::CubicalSimulation;
 use crunchy::math_utils::binomial_coefficient;
+use crunchy::simulation::simulation::CubicalSimulation;
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]

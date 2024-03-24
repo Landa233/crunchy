@@ -8,8 +8,6 @@ use crate::{
     math_utils::binomial_coefficient,
 };
 
-pub trait SimParameter: Copy + Clone {}
-
 pub trait Field: Debug + Copy + Clone + Default {
     type IndexType: Copy + Clone;
     type SimType;

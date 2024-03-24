@@ -10,9 +10,10 @@ use self::edge_connections::{
     CubeConnections, EdgeConnections, FaceConnections, VertexConnections,
 };
 
-use super::fields::{Field, Node, SimParameter};
+use super::fields::{Field, Node};
+use super::Latticy;
 
-pub trait CubicalFields {
+pub trait CubicalFields: Clone {
     const NDIM: usize;
 
     type VertexField: Field;
@@ -26,7 +27,7 @@ type EdgeNode<const NDIM: usize, FieldType> = Node<EdgeConnections<NDIM>, FieldT
 type FaceNode<const NDIM: usize, FieldType> = Node<FaceConnections<NDIM>, FieldType>;
 type CubeNode<const NDIM: usize, FieldType> = Node<CubeConnections<NDIM>, FieldType>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CubicalLattice<const NDIM: usize, CuFi: CubicalFields>
 where
     [(); NDIM + 1]:,
@@ -43,6 +44,18 @@ where
     pub edges: CRArray<{ NDIM + 1 }, EdgeNode<NDIM, CuFi::EdgeField>>,
     pub faces: CRArray<{ NDIM + 1 }, FaceNode<NDIM, CuFi::FaceField>>,
     pub cubes: CRArray<{ NDIM + 1 }, CubeNode<NDIM, CuFi::CubeField>>,
+}
+
+impl<const NDIM: usize, CuFi: CubicalFields> Latticy for CubicalLattice<NDIM, CuFi>
+where
+    [(); NDIM + 1]:,
+    [(); NDIM * 2]:,
+    [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
+    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
+    [(); 2 * (NDIM - 2)]:,
+    [(); 8 * binomial_coefficient(NDIM, 3)]:,
+{
 }
 
 impl<const NDIM: usize, CuFi: CubicalFields> CubicalLattice<NDIM, CuFi>

@@ -1,3 +1,4 @@
+use crunchy::simulation::simulation::CubicalSimulation;
 use std::ops::Deref;
 
 use crate::gauge_fields::edges::EdgeField;
@@ -6,7 +7,7 @@ use crate::gauge_fields::lattice::ZNParameters;
 use crunchy::crarray::shape::Shape;
 use crunchy::lattice::cubical_lattice::CubicalLattice;
 use crunchy::lattice::fields::UpdateField;
-use crunchy::lattice::simulation::simulation::CubicalSimulation;
+
 use rand::Rng;
 
 use rand::SeedableRng;
