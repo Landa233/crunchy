@@ -1,9 +1,7 @@
 use crunchy::{
-    lattice::{
-        cubical_lattice::CubicalFields,
-        fields::{EmptyField, SimParameter},
-    },
+    lattice::{cubical_lattice::CubicalFields, fields::EmptyField},
     math_utils::binomial_coefficient,
+    simulation::simulation::SimParameter,
 };
 
 use super::{cubes::MonopoleField, edges::EdgeField, plaquettes::PlaquetteField};

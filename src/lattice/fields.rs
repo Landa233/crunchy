@@ -8,8 +8,6 @@ use crate::{
     math_utils::binomial_coefficient,
 };
 
-pub trait SimParameter: Copy + Clone {}
-
 pub trait Field: Debug + Copy + Clone + Default {
     type IndexType: Copy + Clone;
     type SimType;
@@ -50,13 +48,13 @@ pub trait UpdateField: Field {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
-pub struct Node<GraphConnections: Default, FieldType: Field> {
+pub struct Node<GraphConnections: Default + Copy + Clone, FieldType: Field> {
     pub graph_connections: GraphConnections,
     pub data: FieldType,
 }
 
-impl<GraphConnections: Default + fmt::Display, FieldType: Field + fmt::Display> fmt::Display
-    for Node<GraphConnections, FieldType>
+impl<GraphConnections: Default + Copy + Clone + fmt::Display, FieldType: Field + fmt::Display>
+    fmt::Display for Node<GraphConnections, FieldType>
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(

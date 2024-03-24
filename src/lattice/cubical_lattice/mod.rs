@@ -10,9 +10,10 @@ use self::edge_connections::{
     CubeConnections, EdgeConnections, FaceConnections, VertexConnections,
 };
 
-use super::fields::{Field, Node, SimParameter};
+use super::fields::{Field, Node};
+use super::Latticy;
 
-pub trait CubicalFields {
+pub trait CubicalFields: Clone {
     const NDIM: usize;
 
     type VertexField: Field;
@@ -43,6 +44,40 @@ where
     pub edges: CRArray<{ NDIM + 1 }, EdgeNode<NDIM, CuFi::EdgeField>>,
     pub faces: CRArray<{ NDIM + 1 }, FaceNode<NDIM, CuFi::FaceField>>,
     pub cubes: CRArray<{ NDIM + 1 }, CubeNode<NDIM, CuFi::CubeField>>,
+}
+
+// Had to manually implement Clone because of infinite compile times otherwise
+impl<const NDIM: usize, CuFi: CubicalFields> Clone for CubicalLattice<NDIM, CuFi>
+where
+    [(); NDIM + 1]:,
+    [(); NDIM * 2]:,
+    [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
+    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
+    [(); 2 * (NDIM - 2)]:,
+    [(); 8 * binomial_coefficient(NDIM, 3)]:,
+{
+    fn clone(&self) -> Self {
+        Self {
+            shape: self.shape.clone(),
+            vertices: self.vertices.clone(),
+            edges: self.edges.clone(),
+            faces: self.faces.clone(),
+            cubes: self.cubes.clone(),
+        }
+    }
+}
+
+impl<const NDIM: usize, CuFi: CubicalFields> Latticy for CubicalLattice<NDIM, CuFi>
+where
+    [(); NDIM + 1]:,
+    [(); NDIM * 2]:,
+    [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
+    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
+    [(); 2 * (NDIM - 2)]:,
+    [(); 8 * binomial_coefficient(NDIM, 3)]:,
+{
 }
 
 impl<const NDIM: usize, CuFi: CubicalFields> CubicalLattice<NDIM, CuFi>

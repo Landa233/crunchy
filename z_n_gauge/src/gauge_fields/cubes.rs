@@ -1,6 +1,6 @@
 use crunchy::{
-    lattice::{fields::Field, simulation::simulation::CubicalSimulation},
-    math_utils::binomial_coefficient,
+    lattice::fields::Field, math_utils::binomial_coefficient,
+    simulation::simulation::CubicalSimulation,
 };
 
 use super::lattice::{ZNLatticeTypes, ZNParameters};
