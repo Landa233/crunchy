@@ -27,7 +27,7 @@ type EdgeNode<const NDIM: usize, FieldType> = Node<EdgeConnections<NDIM>, FieldT
 type FaceNode<const NDIM: usize, FieldType> = Node<FaceConnections<NDIM>, FieldType>;
 type CubeNode<const NDIM: usize, FieldType> = Node<CubeConnections<NDIM>, FieldType>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CubicalLattice<const NDIM: usize, CuFi: CubicalFields>
 where
     [(); NDIM + 1]:,
@@ -44,6 +44,28 @@ where
     pub edges: CRArray<{ NDIM + 1 }, EdgeNode<NDIM, CuFi::EdgeField>>,
     pub faces: CRArray<{ NDIM + 1 }, FaceNode<NDIM, CuFi::FaceField>>,
     pub cubes: CRArray<{ NDIM + 1 }, CubeNode<NDIM, CuFi::CubeField>>,
+}
+
+// Had to manually implement Clone because of infinite compile times otherwise
+impl<const NDIM: usize, CuFi: CubicalFields> Clone for CubicalLattice<NDIM, CuFi>
+where
+    [(); NDIM + 1]:,
+    [(); NDIM * 2]:,
+    [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
+    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
+    [(); 2 * (NDIM - 2)]:,
+    [(); 8 * binomial_coefficient(NDIM, 3)]:,
+{
+    fn clone(&self) -> Self {
+        Self {
+            shape: self.shape.clone(),
+            vertices: self.vertices.clone(),
+            edges: self.edges.clone(),
+            faces: self.faces.clone(),
+            cubes: self.cubes.clone(),
+        }
+    }
 }
 
 impl<const NDIM: usize, CuFi: CubicalFields> Latticy for CubicalLattice<NDIM, CuFi>

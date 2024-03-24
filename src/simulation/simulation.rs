@@ -5,6 +5,7 @@ use crate::{
     lattice::{cubical_lattice::CubicalLattice, Latticy},
 };
 
+#[derive(Clone)]
 pub struct Simulation<const NDIM: usize, SimParameterType: SimParameter, LatticeType: Latticy> {
     pub lattice: LatticeType,
 

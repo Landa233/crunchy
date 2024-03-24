@@ -30,6 +30,7 @@ pub struct ExperimentParameters {
     pub rng_seed: u64,
 }
 
+#[derive(Clone)]
 pub struct Experiment<const ZORDER: usize> {
     pub sim: CubicalSimulation<4, ZNLatticeTypes<4, ZORDER>, ZNParameters<ZORDER>>,
     pub rng_gen: Pcg64Mcg,
