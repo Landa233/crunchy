@@ -13,3 +13,7 @@ const fn factorial(n: usize) -> usize {
         _ => 0,
     }
 }
+
+pub fn my_default<const N: usize, const M: usize>() -> [[usize; N]; M] {
+    [[0; N]; M]
+}

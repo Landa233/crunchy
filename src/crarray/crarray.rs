@@ -6,7 +6,7 @@ use std::{
 
 use super::shape::{Shape, ShapeIterator};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CRArray<const NDIM: usize, T> {
     shape: Shape<NDIM>,
     flat_data: Vec<T>,

@@ -3,7 +3,11 @@ use std::fmt;
 use colored::Colorize;
 use crunchy::{
     crarray::{ind::Ind, shape::Shape},
-    lattice::lattice::{EmptyField, Field, Lattice, LatticeTypes, SimParameter, UpdateField},
+    lattice::{
+        cubical_lattice::{CubicalFields, CubicalLattice},
+        fields::{EmptyField, Field, UpdateField},
+    },
+    simulation::simulation::{CubicalSimulation, SimParameter},
 };
 
 #[derive(Debug, Copy, Clone, Default)]
@@ -19,21 +23,20 @@ impl fmt::Display for Spin {
 
 impl Field for Spin {
     type IndexType = [usize; 3];
-
-    type GridType = Lattice<2, SpinLattice>;
+    type SimType = CubicalSimulation<2, SpinLattice, IsingParameters>;
 }
 
 impl UpdateField for Spin {
-    fn update(node_index: Self::IndexType, grid: &mut Self::GridType, field: Self) -> Self {
-        let old_field = grid.vertices[node_index].data;
+    fn update(node_index: Self::IndexType, sim: &mut Self::SimType, field: Self) -> Self {
+        let old_field = sim.lattice.vertices[node_index].data;
 
-        grid.vertices[node_index].data = field;
+        sim.lattice.vertices[node_index].data = field;
 
         old_field
     }
 
-    fn energy(node_index: Self::IndexType, grid: &mut Self::GridType) -> f32 {
-        let shape = *grid.vertices.shape();
+    fn energy(node_index: Self::IndexType, sim: &mut Self::SimType) -> f32 {
+        let shape = *sim.lattice.vertices.shape();
 
         let up = (Ind::new(node_index) + [0, 0, 1]) % shape;
         let down = (Ind::new(node_index) + [0, 0, shape[2] - 1]) % shape;
@@ -42,13 +45,15 @@ impl UpdateField for Spin {
 
         let mut energy = 0.0;
         for dir in [up, down, right, left] {
-            if grid.vertices[*dir].data.up_down == grid.vertices[node_index].data.up_down {
+            if sim.lattice.vertices[*dir].data.up_down
+                == sim.lattice.vertices[node_index].data.up_down
+            {
                 energy += 1.0;
             } else {
                 energy -= 1.0;
             }
         }
-        -grid.sim_parameters.beta * energy
+        -sim.sim_parameters.beta * energy
     }
 
     fn init() -> impl FnMut([usize; 3]) -> Self {
@@ -66,18 +71,16 @@ struct IsingParameters {
 
 impl SimParameter for IsingParameters {}
 
-impl LatticeTypes for SpinLattice {
+impl CubicalFields for SpinLattice {
     const NDIM: usize = 2;
 
-    type VertexType = Spin;
-    type EdgeType = EmptyField<SpinLattice>;
-    type FaceType = EmptyField<SpinLattice>;
-    type CubeType = EmptyField<SpinLattice>;
-
-    type SimParameterType = IsingParameters;
+    type VertexField = Spin;
+    type EdgeField = EmptyField<SpinLattice>;
+    type FaceField = EmptyField<SpinLattice>;
+    type CubeField = EmptyField<SpinLattice>;
 }
 
-fn print_ising_model(lattice: &Lattice<2, SpinLattice>) {
+fn print_ising_model(lattice: &CubicalLattice<2, SpinLattice>) {
     let shape = lattice.vertices.shape();
     for i in 0..shape[1] {
         for j in 0..shape[2] {
@@ -96,26 +99,31 @@ fn main() {
 
     let sim_params = IsingParameters { beta: 1. / 2.269 };
 
-    let mut lattice = Lattice::<2, SpinLattice>::new(shape, sim_params);
+    let mut ising_sim = CubicalSimulation::<2, SpinLattice, IsingParameters> {
+        lattice: CubicalLattice::new(shape),
+        sim_parameters: sim_params,
+    };
 
     let mut f = Spin::init();
 
-    for id in lattice.vertices.shape().iter() {
-        lattice.vertices[id].data = f(id);
+    for id in ising_sim.lattice.vertices.shape().iter() {
+        ising_sim.lattice.vertices[id].data = f(id);
     }
 
-    let vertex_shape = lattice.vertices.shape();
+    let vertex_shape = ising_sim.lattice.vertices.shape();
     let mut rng_gen = rand::thread_rng();
 
     for _ in 0..100000000 {
         let index = vertex_shape.random_index(&mut rng_gen);
 
         let new_field = Spin {
-            up_down: !lattice.vertices[index].data.up_down,
+            up_down: !ising_sim.lattice.vertices[index].data.up_down,
         };
 
-        Spin::metropolis_step(index, &mut lattice, new_field, &mut rng_gen);
+        Spin::metropolis_step(index, &mut ising_sim, new_field, &mut rng_gen);
     }
 
-    print_ising_model(&lattice);
+    print_ising_model(&ising_sim.lattice);
 }
+
+// fn main() {}

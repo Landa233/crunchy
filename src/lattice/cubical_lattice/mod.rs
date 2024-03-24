@@ -1,249 +1,25 @@
-use core::fmt;
-use std::{fmt::Debug, marker::PhantomData, usize};
+pub mod edge_connections;
 
-use rand::Rng;
-
+use crate::crarray::ind::Ind;
 use crate::{
-    crarray::{self, crarray::CRArray, ind::Ind, shape::Shape},
+    crarray::{crarray::CRArray, shape::Shape},
     math_utils::binomial_coefficient,
 };
 
-pub trait SimParameter: Copy + Clone {}
+use self::edge_connections::{
+    CubeConnections, EdgeConnections, FaceConnections, VertexConnections,
+};
 
-pub trait LatticeTypes {
+use super::fields::{Field, Node};
+use super::Latticy;
+
+pub trait CubicalFields: Clone {
     const NDIM: usize;
 
-    type VertexType: Field;
-    type EdgeType: Field;
-    type FaceType: Field;
-    type CubeType: Field;
-
-    type SimParameterType: SimParameter;
-}
-
-pub trait Field: Debug + Copy + Clone + Default {
-    type IndexType: Copy + Clone;
-    type GridType;
-
-    fn rebuild(node_index: Self::IndexType, grid: &mut Self::GridType) {}
-}
-
-pub trait UpdateField: Field {
-    fn update(node_index: Self::IndexType, grid: &mut Self::GridType, new_field: Self) -> Self;
-
-    fn energy(node_index: Self::IndexType, grid: &mut Self::GridType) -> f32;
-
-    fn init() -> impl FnMut(Self::IndexType) -> Self;
-
-    fn metropolis_step(
-        node_index: Self::IndexType,
-        grid: &mut Self::GridType,
-        new_field: Self,
-        rng_gen: &mut rand::rngs::ThreadRng,
-    ) {
-        let old_energy = Self::energy(node_index, grid);
-        let old_field = Self::update(node_index, grid, new_field);
-        let new_energy = Self::energy(node_index, grid);
-
-        let delta_energy = new_energy - old_energy;
-        if delta_energy < 0.0 {
-            return;
-        }
-
-        let acceptance_probability = (-delta_energy).exp();
-        let random_number: f32 = rng_gen.gen_range(0.0..1.0);
-        if random_number < acceptance_probability {
-            return;
-        }
-
-        Self::update(node_index, grid, old_field);
-    }
-}
-
-#[derive(Debug, Copy, Clone, Default)]
-pub struct Node<GraphConnections: Default, FieldType: Field> {
-    pub graph_connections: GraphConnections,
-    pub data: FieldType,
-}
-
-impl<GraphConnections: Default + fmt::Display, FieldType: Field + fmt::Display> fmt::Display
-    for Node<GraphConnections, FieldType>
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(
-            f,
-            "\nConnections: \n{}\n\nData:\n{}\n",
-            self.graph_connections, self.data
-        )?;
-
-        Ok(())
-    }
-}
-
-fn my_default<const N: usize, const M: usize>() -> [[usize; N]; M] {
-    [[0; N]; M]
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct VertexConnections<const NDIM: usize>
-where
-    [(); NDIM + 1]:,
-    [(); NDIM * 2]:,
-    [(); 4 * binomial_coefficient(NDIM, 2)]:,
-    [(); 8 * binomial_coefficient(NDIM, 3)]:,
-{
-    pub edges: [[usize; NDIM + 1]; NDIM * 2],
-    pub faces: [[usize; NDIM + 1]; 4 * binomial_coefficient(NDIM, 2)],
-    pub cubes: [[usize; NDIM + 1]; 8 * binomial_coefficient(NDIM, 3)],
-}
-
-impl<const NDIM: usize> Default for VertexConnections<NDIM>
-where
-    [(); NDIM + 1]:,
-    [(); NDIM * 2]:,
-    [(); 4 * binomial_coefficient(NDIM, 2)]:,
-    [(); 8 * binomial_coefficient(NDIM, 3)]:,
-{
-    fn default() -> Self {
-        Self {
-            edges: my_default(),
-            faces: my_default(),
-            cubes: my_default(),
-        }
-    }
-}
-
-impl<const NDIM: usize> fmt::Display for VertexConnections<NDIM>
-where
-    [(); NDIM + 1]:,
-    [(); NDIM * 2]:,
-    [(); 4 * binomial_coefficient(NDIM, 2)]:,
-    [(); 8 * binomial_coefficient(NDIM, 3)]:,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Edges: {:?}", self.edges)?;
-        writeln!(f, "Faces: {:?}", self.faces)?;
-        write!(f, "Cubes: {:?}", self.cubes)?;
-
-        Ok(())
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct EdgeConnections<const NDIM: usize>
-where
-    [(); NDIM + 1]:,
-    [(); 2 * (NDIM - 1)]:,
-    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
-{
-    pub vertices: [[usize; NDIM + 1]; 2],
-    pub faces: [[usize; NDIM + 1]; 2 * (NDIM - 1)],
-    pub cubes: [[usize; NDIM + 1]; 4 * binomial_coefficient(NDIM - 1, 2)],
-}
-
-impl<const NDIM: usize> Default for EdgeConnections<NDIM>
-where
-    [(); NDIM + 1]:,
-    [(); 2 * (NDIM - 1)]:,
-    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
-{
-    fn default() -> Self {
-        Self {
-            vertices: my_default(),
-            faces: my_default(),
-            cubes: my_default(),
-        }
-    }
-}
-
-impl<const NDIM: usize> fmt::Display for EdgeConnections<NDIM>
-where
-    [(); NDIM + 1]:,
-    [(); 2 * (NDIM - 1)]:,
-    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Vertices: {:?}", self.vertices)?;
-        writeln!(f, "Faces: {:?}", self.faces)?;
-        write!(f, "Cubes: {:?}", self.cubes)?;
-
-        Ok(())
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct FaceConnections<const NDIM: usize>
-where
-    [(); NDIM + 1]:,
-    [(); 2 * (NDIM - 2)]:,
-{
-    pub vertices: [[usize; NDIM + 1]; 4],
-    pub edges: [[usize; NDIM + 1]; 4],
-    pub cubes: [[usize; NDIM + 1]; 2 * (NDIM - 2)],
-}
-
-impl<const NDIM: usize> Default for FaceConnections<NDIM>
-where
-    [(); NDIM + 1]:,
-    [(); 2 * (NDIM - 2)]:,
-{
-    fn default() -> Self {
-        Self {
-            vertices: my_default(),
-            edges: my_default(),
-            cubes: my_default(),
-        }
-    }
-}
-
-impl<const NDIM: usize> fmt::Display for FaceConnections<NDIM>
-where
-    [(); NDIM + 1]:,
-    [(); 2 * (NDIM - 2)]:,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Vertices: {:?}", self.vertices)?;
-        writeln!(f, "Edges: {:?}", self.edges)?;
-        write!(f, "Cubes: {:?}", self.cubes)?;
-
-        Ok(())
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct CubeConnections<const NDIM: usize>
-where
-    [(); NDIM + 1]:,
-{
-    pub vertices: [[usize; NDIM + 1]; 8],
-    pub edges: [[usize; NDIM + 1]; 12],
-    pub faces: [[usize; NDIM + 1]; 6],
-}
-
-impl<const NDIM: usize> Default for CubeConnections<NDIM>
-where
-    [(); NDIM + 1]:,
-{
-    fn default() -> Self {
-        Self {
-            vertices: my_default(),
-            edges: my_default(),
-            faces: my_default(),
-        }
-    }
-}
-
-impl<const NDIM: usize> fmt::Display for CubeConnections<NDIM>
-where
-    [(); NDIM + 1]:,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Vertices: {:?}", self.vertices)?;
-        writeln!(f, "Edges: {:?}", self.edges)?;
-        write!(f, "Faces: {:?}", self.faces)?;
-
-        Ok(())
-    }
+    type VertexField: Field;
+    type EdgeField: Field;
+    type FaceField: Field;
+    type CubeField: Field;
 }
 
 type VertexNode<const NDIM: usize, FieldType> = Node<VertexConnections<NDIM>, FieldType>;
@@ -251,7 +27,8 @@ type EdgeNode<const NDIM: usize, FieldType> = Node<EdgeConnections<NDIM>, FieldT
 type FaceNode<const NDIM: usize, FieldType> = Node<FaceConnections<NDIM>, FieldType>;
 type CubeNode<const NDIM: usize, FieldType> = Node<CubeConnections<NDIM>, FieldType>;
 
-pub struct Lattice<const NDIM: usize, LTTypes: LatticeTypes>
+#[derive(Debug)]
+pub struct CubicalLattice<const NDIM: usize, CuFi: CubicalFields>
 where
     [(); NDIM + 1]:,
     [(); NDIM * 2]:,
@@ -263,15 +40,47 @@ where
 {
     pub shape: Shape<NDIM>,
 
-    pub vertices: CRArray<{ NDIM + 1 }, VertexNode<NDIM, <LTTypes as LatticeTypes>::VertexType>>,
-    pub edges: CRArray<{ NDIM + 1 }, EdgeNode<NDIM, <LTTypes as LatticeTypes>::EdgeType>>,
-    pub faces: CRArray<{ NDIM + 1 }, FaceNode<NDIM, <LTTypes as LatticeTypes>::FaceType>>,
-    pub cubes: CRArray<{ NDIM + 1 }, CubeNode<NDIM, <LTTypes as LatticeTypes>::CubeType>>,
-
-    pub sim_parameters: LTTypes::SimParameterType,
+    pub vertices: CRArray<{ NDIM + 1 }, VertexNode<NDIM, CuFi::VertexField>>,
+    pub edges: CRArray<{ NDIM + 1 }, EdgeNode<NDIM, CuFi::EdgeField>>,
+    pub faces: CRArray<{ NDIM + 1 }, FaceNode<NDIM, CuFi::FaceField>>,
+    pub cubes: CRArray<{ NDIM + 1 }, CubeNode<NDIM, CuFi::CubeField>>,
 }
 
-impl<const NDIM: usize, LTTypes: LatticeTypes> Lattice<NDIM, LTTypes>
+// Had to manually implement Clone because of infinite compile times otherwise
+impl<const NDIM: usize, CuFi: CubicalFields> Clone for CubicalLattice<NDIM, CuFi>
+where
+    [(); NDIM + 1]:,
+    [(); NDIM * 2]:,
+    [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
+    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
+    [(); 2 * (NDIM - 2)]:,
+    [(); 8 * binomial_coefficient(NDIM, 3)]:,
+{
+    fn clone(&self) -> Self {
+        Self {
+            shape: self.shape.clone(),
+            vertices: self.vertices.clone(),
+            edges: self.edges.clone(),
+            faces: self.faces.clone(),
+            cubes: self.cubes.clone(),
+        }
+    }
+}
+
+impl<const NDIM: usize, CuFi: CubicalFields> Latticy for CubicalLattice<NDIM, CuFi>
+where
+    [(); NDIM + 1]:,
+    [(); NDIM * 2]:,
+    [(); 2 * (NDIM - 1)]:,
+    [(); 4 * binomial_coefficient(NDIM, 2)]:,
+    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
+    [(); 2 * (NDIM - 2)]:,
+    [(); 8 * binomial_coefficient(NDIM, 3)]:,
+{
+}
+
+impl<const NDIM: usize, CuFi: CubicalFields> CubicalLattice<NDIM, CuFi>
 where
     [(); NDIM + 1]:,
     [(); NDIM * 2]:,
@@ -282,10 +91,10 @@ where
     [(); 2 * (NDIM - 2)]:,
     [(); 8 * binomial_coefficient(NDIM, 3)]:,
 {
-    pub fn new(shape: Shape<NDIM>, sim_parameters: LTTypes::SimParameterType) -> Self {
+    pub fn new(shape: Shape<NDIM>) -> Self {
         let vertices: CRArray<
             _,
-            Node<VertexConnections<NDIM>, <LTTypes as LatticeTypes>::VertexType>,
+            Node<VertexConnections<NDIM>, <CuFi as CubicalFields>::VertexField>,
         > = CRArray::zeros(Shape::prepend(1, shape));
         let edges = CRArray::zeros(Shape::prepend(NDIM, shape));
         let faces = CRArray::zeros(Shape::prepend(binomial_coefficient(NDIM, 2), shape));
@@ -297,7 +106,6 @@ where
             edges,
             faces,
             cubes,
-            sim_parameters,
         };
 
         if NDIM > 2 {
@@ -621,46 +429,3 @@ where
         cube_directions
     }
 }
-
-#[derive(Debug, Copy, Clone, Default)]
-pub struct EmptyField<AnyL> {
-    marker: PhantomData<AnyL>,
-}
-
-impl<AnyL: LatticeTypes + Debug + Copy + Clone + Default> Field for EmptyField<AnyL> {
-    type IndexType = usize;
-
-    type GridType = AnyL;
-}
-
-struct Simulation<const NDIM: usize, SimParameterType, LatticeArt> {
-    pub shape: Shape<NDIM>,
-
-    pub lattice: LatticeArt,
-
-    // pub vertices: CRArray<{ NDIM + 1 }, VertexNode<NDIM, <LTTypes as LatticeTypes>::VertexType>>,
-    // pub edges: CRArray<{ NDIM + 1 }, EdgeNode<NDIM, <LTTypes as LatticeTypes>::EdgeType>>,
-    // pub faces: CRArray<{ NDIM + 1 }, FaceNode<NDIM, <LTTypes as LatticeTypes>::FaceType>>,
-    // pub cubes: CRArray<{ NDIM + 1 }, CubeNode<NDIM, <LTTypes as LatticeTypes>::CubeType>>,
-    pub sim_parameters: SimParameterType,
-}
-
-struct Cubical<const NDIM: usize, LTTypes: LatticeTypes>
-where
-    [(); NDIM + 1]:,
-    [(); NDIM * 2]:,
-    [(); 2 * (NDIM - 1)]:,
-    [(); 4 * binomial_coefficient(NDIM, 2)]:,
-    [(); 2 * binomial_coefficient(NDIM, 2)]:,
-    [(); 4 * binomial_coefficient(NDIM - 1, 2)]:,
-    [(); 2 * (NDIM - 2)]:,
-    [(); 8 * binomial_coefficient(NDIM, 3)]:,
-{
-    pub vertices: CRArray<{ NDIM + 1 }, VertexNode<NDIM, <LTTypes as LatticeTypes>::VertexType>>,
-    pub edges: CRArray<{ NDIM + 1 }, EdgeNode<NDIM, <LTTypes as LatticeTypes>::EdgeType>>,
-    pub faces: CRArray<{ NDIM + 1 }, FaceNode<NDIM, <LTTypes as LatticeTypes>::FaceType>>,
-    pub cubes: CRArray<{ NDIM + 1 }, CubeNode<NDIM, <LTTypes as LatticeTypes>::CubeType>>,
-}
-
-type CubicalSim<const NDIM: usize, SimParameter, L> =
-    Simulation<NDIM, SimParameter, Cubical<NDIM, L>>;
