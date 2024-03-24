@@ -188,7 +188,7 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use npyz::{
     npz, AutoSerialize, DType, Field as NpyField, NpyWriter, Serialize, TypeWrite, WriterBuilder,
 };
-use rand::Rng;
+
 use z_n_gauge::{experiment::experiment::Experiment, gauge_fields::lattice::ZNParameters};
 use zip::write::FileOptions;
 
@@ -277,7 +277,7 @@ pub fn create_writer<'a, W: std::io::Write, T: ?Sized + Serialize>(
 }
 
 fn main() {
-    const LATTICEDIM: usize = 7;
+    const LATTICEDIM: usize = 6;
     let shape = Shape::new([LATTICEDIM, LATTICEDIM, LATTICEDIM, LATTICEDIM]);
     const ZORDER: usize = 3;
 
@@ -287,7 +287,7 @@ fn main() {
         beta_range: [0.49, 0.56],
         steps: 24,
         number_of_threads: 8,
-        recordings: 1,
+        recordings: 20000,
         grid_shape: shape,
         thermalization_steps: 0,
         lambda,

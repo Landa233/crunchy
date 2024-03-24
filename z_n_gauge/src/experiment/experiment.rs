@@ -9,9 +9,29 @@ use crunchy::lattice::fields::UpdateField;
 use crunchy::lattice::simulation::simulation::CubicalSimulation;
 use rand::Rng;
 
+use rand::SeedableRng;
+use rand_pcg::Pcg64Mcg;
+use serde::Deserialize;
+use serde::Serialize;
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct ExperimentParameters {
+    pub shape: [usize; 4],
+
+    pub z_order: usize,
+    pub beta: f32,
+    pub lambda: f32,
+
+    pub recordings: usize,
+    pub recording_skip: usize,
+    pub recordings_until_backup: usize,
+
+    pub rng_seed: u64,
+}
+
 pub struct Experiment<const ZORDER: usize> {
     pub sim: CubicalSimulation<4, ZNLatticeTypes<4, ZORDER>, ZNParameters<ZORDER>>,
-    pub rng_gen: rand::rngs::ThreadRng,
+    pub rng_gen: Pcg64Mcg,
 }
 
 impl<const ZORDER: usize> Experiment<ZORDER> {
@@ -21,7 +41,8 @@ impl<const ZORDER: usize> Experiment<ZORDER> {
             sim_parameters,
         };
 
-        let rng_gen = rand::thread_rng();
+        // let rng_gen = Pcg64Mcg::seed_from_u64(1);
+        let rng_gen = Pcg64Mcg::from_entropy();
 
         Experiment { sim, rng_gen }
     }

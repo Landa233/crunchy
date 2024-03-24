@@ -24,11 +24,11 @@ pub trait UpdateField: Field {
 
     fn init() -> impl FnMut(Self::IndexType) -> Self;
 
-    fn metropolis_step(
+    fn metropolis_step<R: Rng>(
         node_index: Self::IndexType,
         grid: &mut Self::SimType,
         new_field: Self,
-        rng_gen: &mut rand::rngs::ThreadRng,
+        rng_gen: &mut R,
     ) {
         let old_energy = Self::energy(node_index, grid);
         let old_field = Self::update(node_index, grid, new_field);

@@ -26,6 +26,7 @@ type EdgeNode<const NDIM: usize, FieldType> = Node<EdgeConnections<NDIM>, FieldT
 type FaceNode<const NDIM: usize, FieldType> = Node<FaceConnections<NDIM>, FieldType>;
 type CubeNode<const NDIM: usize, FieldType> = Node<CubeConnections<NDIM>, FieldType>;
 
+#[derive(Debug)]
 pub struct CubicalLattice<const NDIM: usize, CuFi: CubicalFields>
 where
     [(); NDIM + 1]:,

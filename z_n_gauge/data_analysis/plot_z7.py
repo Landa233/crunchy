@@ -1,3 +1,4 @@
+import sys
 import matplotlib as mpl
 from matplotlib.collections import LineCollection
 from matplotlib.colors import LinearSegmentedColormap
@@ -21,7 +22,7 @@ if not load_data_flag:
     print("Loading data")
 
     data = np.load(
-        'z_n_gauge/data_analysis/temp/transfer.npz')
+        'z_n_gauge/data_analysis/temp/restructure_test.npz')
 
     raw_data = data["loops"]
     meta_data = data["meta_data"]
