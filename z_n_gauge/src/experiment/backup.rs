@@ -2,11 +2,14 @@ use crunchy::{lattice::fields::Field, simulation::simulation::CubicalSimulation}
 use rand_pcg::Pcg64Mcg;
 use serde::{Deserialize, Serialize};
 
-use crate::gauge_fields::{
-    cubes::MonopoleField, edges, lattice::ZNParameters, plaquettes::PlaquetteField,
+use crate::{
+    gauge_fields::{
+        cubes::MonopoleField, edges, lattice::ZNParameters, plaquettes::PlaquetteField,
+    },
+    sheduler::executor::ExecutorParameters,
 };
 
-use super::experiment::{ExecutorParameters, Experiment};
+use super::experiment::Experiment;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LatticeBackup {
@@ -14,12 +17,12 @@ pub struct LatticeBackup {
     pub edges_flat_data: Vec<u8>,
     pub rng_gen: Pcg64Mcg,
     pub performed_updates: u64,
+    pub accepted_updates: u64,
 }
 
 pub fn backup_experiment<const ZORDER: usize>(
     experiment: &Experiment<ZORDER>,
     experiment_parameters: ExecutorParameters,
-    performed_updates: u64,
 ) -> LatticeBackup {
     let mut edges_flat_data = vec![];
 
@@ -27,11 +30,15 @@ pub fn backup_experiment<const ZORDER: usize>(
         edges_flat_data.push(edge.data.phase.try_into().unwrap());
     }
 
+    let performed_updates = experiment.performed_updates;
+    let accepted_updates = experiment.accepted_updates;
+
     LatticeBackup {
         experiment_parameters,
         edges_flat_data,
         rng_gen: experiment.rng_gen.clone(),
         performed_updates,
+        accepted_updates,
     }
 }
 
@@ -78,6 +85,9 @@ impl LatticeBackup {
         for cube_id in cube_shape.iter() {
             MonopoleField::rebuild(cube_id, &mut experiment.sim);
         }
+
+        experiment.performed_updates = self.performed_updates;
+        experiment.accepted_updates = self.accepted_updates;
 
         experiment
     }

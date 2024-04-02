@@ -59,12 +59,11 @@ fn generate_cosine<const ZORDER: usize>() -> [f32; ZORDER] {
 //     let exp_clone = experiment.clone();
 // }
 
+use ndarray::{s, Array, IxDyn};
 use z_n_gauge::{
-    experiment::{
-        backup::backup_experiment,
-        experiment::{ExecutorParameters, Experiment},
-    },
+    experiment::{backup::backup_experiment, experiment::Experiment},
     gauge_fields::lattice::ZNParameters,
+    sheduler::executor::ExecutorParameters,
 };
 
 fn main() {
@@ -96,11 +95,18 @@ fn main() {
         rng_seed: 1,
     };
 
-    let backup = backup_experiment(&experiment, experiment_parameters, 0);
+    let backup = backup_experiment(&experiment, experiment_parameters);
 
     let restored_experiment: Experiment<3> = backup.reboot_experiment();
 
     println!("{:?}", experiment == restored_experiment);
+
+    let res_shape = [10, 10];
+    let zeros: Vec<u8> = vec![0; res_shape.iter().product()];
+
+    let mut a: Array<u8, IxDyn> = Array::from_shape_vec(res_shape, zeros).unwrap().into_dyn();
+
+    println!("{:?}", a.slice(s![0..2, 0..1]));
 
     // let mut exp_clone = experiment.clone();
 

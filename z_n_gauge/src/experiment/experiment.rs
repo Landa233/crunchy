@@ -15,25 +15,13 @@ use rand_pcg::Pcg64Mcg;
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct ExecutorParameters {
-    pub shape: [usize; 4],
-
-    pub z_order: usize,
-    pub beta: f32,
-    pub lambda: f32,
-
-    pub recordings: usize,
-    pub recording_skip: usize,
-    pub recordings_until_backup: usize,
-
-    pub rng_seed: u64,
-}
-
 #[derive(Clone)]
 pub struct Experiment<const ZORDER: usize> {
     pub sim: CubicalSimulation<4, ZNLatticeTypes<4, ZORDER>, ZNParameters<ZORDER>>,
     pub rng_gen: Pcg64Mcg,
+
+    pub performed_updates: u64,
+    pub accepted_updates: u64,
 }
 
 impl<const ZORDER: usize> Experiment<ZORDER> {
@@ -46,7 +34,12 @@ impl<const ZORDER: usize> Experiment<ZORDER> {
         // let rng_gen = Pcg64Mcg::seed_from_u64(1);
         let rng_gen = Pcg64Mcg::from_entropy();
 
-        Experiment { sim, rng_gen }
+        Experiment {
+            sim,
+            rng_gen,
+            performed_updates: 0,
+            accepted_updates: 0,
+        }
     }
 
     pub fn sweep(&mut self) {
@@ -54,7 +47,13 @@ impl<const ZORDER: usize> Experiment<ZORDER> {
             let new_edge = EdgeField {
                 phase: self.rng_gen.gen_range(0..ZORDER),
             };
-            EdgeField::metropolis_step(edge_index, &mut self.sim, new_edge, &mut self.rng_gen);
+            let update_accepted =
+                EdgeField::metropolis_step(edge_index, &mut self.sim, new_edge, &mut self.rng_gen);
+
+            if update_accepted.into() {
+                self.accepted_updates += 1;
+            }
+            self.performed_updates += 1;
         }
     }
 }
@@ -88,6 +87,13 @@ impl<const ZORDER: usize> PartialEq for Experiment<ZORDER> {
             if self.sim.cubes[cube_index].data != other.sim.cubes[cube_index].data {
                 return false;
             }
+        }
+
+        if self.performed_updates != other.performed_updates {
+            return false;
+        }
+        if self.accepted_updates != other.accepted_updates {
+            return false;
         }
 
         true

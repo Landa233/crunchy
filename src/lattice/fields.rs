@@ -82,3 +82,12 @@ pub enum Update {
     Accepted,
     Rejected,
 }
+
+impl From<Update> for bool {
+    fn from(update: Update) -> bool {
+        match update {
+            Update::Accepted => true,
+            Update::Rejected => false,
+        }
+    }
+}
