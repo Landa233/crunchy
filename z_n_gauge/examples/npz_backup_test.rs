@@ -119,12 +119,35 @@ impl TypeRead for AReader {
             }
         }
 
+        println!("{:?}", lengths);
+
         let mut a = vec![];
-        let mut b = vec![];
+        // let mut b = vec![];
 
-        let mut bytes = bytes.iter();
+        let mut byte_iterator = bytes.iter();
 
-        // println!("{:?}", a);
+        for _ in 0..lengths[0] {
+            a.push(*(byte_iterator.next().unwrap()))
+        }
+
+        fn u8_to_f32_vec(v: &[u8]) -> Vec<f32> {
+            v.chunks_exact(4)
+                .map(TryInto::try_into)
+                .map(Result::unwrap)
+                .map(f32::from_le_bytes)
+                .collect()
+        }
+
+        let mut float_bytes = vec![];
+
+        for _ in 0..(4 * lengths[1]) {
+            float_bytes.push(*byte_iterator.next().unwrap());
+        }
+
+        println!("{:?}", float_bytes);
+        let floats_vec = u8_to_f32_vec(&float_bytes);
+
+        println!("{:?}", floats_vec);
 
         todo!()
     }
@@ -135,7 +158,7 @@ fn main() {
 
     let a = A {
         a: vec![1, 2, 3, 5],
-        b: vec![1.0, 2.0],
+        b: vec![1.0, 2.0, 3.0],
     };
 
     let mut writer = npyz::WriteOptions::new()

@@ -9,7 +9,7 @@ def read_zzz():
 
 
 a = read_zzz()
-print(a.dtype.fields)
-
-print(a[0]['a'])
-print(a[0]['b'])
+for field in a.dtype.fields:
+    print(field)
+    print(a[field])
+    print()

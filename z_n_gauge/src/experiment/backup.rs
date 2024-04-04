@@ -1,6 +1,6 @@
 use crunchy::{lattice::fields::Field, simulation::simulation::CubicalSimulation};
+use ndarray::{Array, IxDyn};
 use rand_pcg::Pcg64Mcg;
-use serde::{Deserialize, Serialize};
 
 use crate::{
     gauge_fields::{
@@ -11,18 +11,20 @@ use crate::{
 
 use super::experiment::Experiment;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq)]
 pub struct LatticeBackup {
-    pub experiment_parameters: ExecutorParameters,
     pub edges_flat_data: Vec<u8>,
     pub rng_gen: Pcg64Mcg,
     pub performed_updates: u64,
     pub accepted_updates: u64,
+    pub recordings: Array<u8, IxDyn>,
+    pub experiment_parameters: ExecutorParameters,
 }
 
 pub fn backup_experiment<const ZORDER: usize>(
     experiment: &Experiment<ZORDER>,
     experiment_parameters: ExecutorParameters,
+    recordings: &Array<u8, IxDyn>,
 ) -> LatticeBackup {
     let mut edges_flat_data = vec![];
 
@@ -34,11 +36,12 @@ pub fn backup_experiment<const ZORDER: usize>(
     let accepted_updates = experiment.accepted_updates;
 
     LatticeBackup {
-        experiment_parameters,
         edges_flat_data,
         rng_gen: experiment.rng_gen.clone(),
         performed_updates,
         accepted_updates,
+        recordings: recordings.clone(),
+        experiment_parameters,
     }
 }
 

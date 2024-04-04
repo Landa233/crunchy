@@ -92,6 +92,19 @@ impl<const NDIM: usize> From<[usize; NDIM]> for Shape<NDIM> {
     }
 }
 
+impl<const NDIM: usize> From<[u32; NDIM]> for Shape<NDIM> {
+    fn from(dim: [u32; NDIM]) -> Self {
+        let dim: [usize; NDIM] = dim
+            .iter()
+            .map(|&x| x as usize)
+            .collect::<Vec<usize>>()
+            .try_into()
+            .unwrap();
+
+        Self::new(dim)
+    }
+}
+
 #[derive(Debug)]
 pub struct ShapeIterator<const NDIM: usize> {
     shape: Shape<NDIM>,
