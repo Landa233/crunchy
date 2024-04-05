@@ -2,7 +2,7 @@ use ndarray::{Array, IxDyn};
 use npyz::{AutoSerialize, DType, Deserialize, Serialize, TypeRead, TypeWrite};
 use rand_pcg::Pcg64Mcg;
 
-use crate::sheduler::executor::ExecutorParameters;
+use crate::sheduler::executor::RunInfo;
 use byteorder::{LittleEndian, WriteBytesExt};
 
 use super::backup::LatticeBackup;
@@ -59,8 +59,8 @@ pub fn backup_dtype(backup: &LatticeBackup) -> DType {
             dtype: array_dtype(&backup.recordings),
         },
         npyz::Field {
-            name: "executor_parameters".to_string(),
-            dtype: <ExecutorParameters as AutoSerialize>::default_dtype(),
+            name: "run_info".to_string(),
+            dtype: <RunInfo as AutoSerialize>::default_dtype(),
         },
     ]);
 
@@ -80,8 +80,8 @@ impl TypeWrite for BackupWriter {
     where
         Self: Sized,
     {
-        let dtype = <ExecutorParameters as AutoSerialize>::default_dtype();
-        let executor_writer = <ExecutorParameters as Serialize>::writer(&dtype).unwrap();
+        let dtype = <RunInfo as AutoSerialize>::default_dtype();
+        let run_info_writer = <RunInfo as Serialize>::writer(&dtype).unwrap();
 
         for &edge in value.edges_flat_data.iter() {
             writer.write_u8(edge).unwrap();
@@ -106,7 +106,7 @@ impl TypeWrite for BackupWriter {
             writer.write_u8(recording).unwrap();
         }
 
-        executor_writer.write_one(writer, &value.experiment_parameters)?;
+        run_info_writer.write_one(writer, &value.run_info)?;
 
         Ok(())
     }
@@ -221,12 +221,10 @@ impl TypeRead for BackupReader {
             .map(|byte| *byte)
             .collect::<Vec<u8>>();
 
-        let exec_par_reader = <ExecutorParameters as Deserialize>::reader(
-            &<ExecutorParameters as AutoSerialize>::default_dtype(),
-        )
-        .unwrap();
+        let run_info_reader =
+            <RunInfo as Deserialize>::reader(&<RunInfo as AutoSerialize>::default_dtype()).unwrap();
 
-        let executor_parameters = exec_par_reader.read_one(&rest_of_bytes[..]).unwrap();
+        let run_info = run_info_reader.read_one(&rest_of_bytes[..]).unwrap();
 
         Ok(LatticeBackup {
             edges_flat_data,
@@ -234,7 +232,7 @@ impl TypeRead for BackupReader {
             performed_updates,
             accepted_updates,
             recordings,
-            experiment_parameters: executor_parameters,
+            run_info,
         })
     }
 }

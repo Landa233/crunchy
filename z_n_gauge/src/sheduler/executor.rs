@@ -1,4 +1,4 @@
-use ndarray::{Array, IxDyn};
+use ndarray::{s, Array, IxDyn};
 use npyz::{AutoSerialize, Deserialize, Serialize};
 
 use crate::experiment::{
@@ -7,33 +7,41 @@ use crate::experiment::{
 };
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, AutoSerialize, PartialEq)]
-pub struct ExecutorParameters {
+pub struct RunInfo {
+    pub experiment_parameters: ExperimentParameters,
+    pub run_parameters: RunParameters,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, AutoSerialize, PartialEq)]
+pub struct ExperimentParameters {
     pub shape: [u32; 4],
 
     pub z_order: u32,
     pub beta: f32,
     pub lambda: f32,
 
+    pub rng_seed: u64,
+}
+
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, AutoSerialize, PartialEq)]
+pub struct RunParameters {
     pub recordings: u32,
     pub recording_skip: u32,
     pub recordings_until_backup: u32,
-
-    pub rng_seed: u64,
 }
 
 pub fn execute(backup: LatticeBackup) {
     let mut experiment: Experiment<3> = backup.reboot_experiment();
 
-    let ExecutorParameters {
-        shape,
-        z_order,
-        beta,
-        lambda,
-        recordings,
-        recording_skip,
-        recordings_until_backup,
-        rng_seed,
-    } = backup.experiment_parameters;
+    let RunInfo {
+        experiment_parameters: ExperimentParameters { shape, z_order, .. },
+        run_parameters:
+            RunParameters {
+                recordings,
+                recording_skip,
+                recordings_until_backup,
+            },
+    } = backup.run_info;
 
     let [x_dim, y_dim, z_dim, t_dim] = shape;
 
@@ -70,11 +78,11 @@ pub fn execute(backup: LatticeBackup) {
 
         backup_counter += 1;
         if backup_counter == recordings_until_backup {
-            let backup = backup_experiment(
-                &experiment,
-                backup.experiment_parameters,
-                &polyakov_recordings,
-            );
+            let recording_snipped = polyakov_recordings
+                .slice(s![prev_backup..i, .., .., ..])
+                .to_owned()
+                .into_dyn();
+            let backup = backup_experiment(&experiment, backup.run_info, recording_snipped);
 
             prev_backup = i;
             backup_counter = 0;

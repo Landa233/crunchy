@@ -5,19 +5,34 @@ use npyz::{AutoSerialize, WriterBuilder};
 use rand_pcg::Pcg64Mcg;
 use z_n_gauge::{
     experiment::{backup::LatticeBackup, backup_serializer::backup_dtype},
-    sheduler::executor::ExecutorParameters,
+    sheduler::executor::RunInfo,
 };
 
 fn main() {
-    let executor_parameters = ExecutorParameters {
-        shape: [1, 2, 3, 4],
-        z_order: 7,
-        beta: 0.1,
-        lambda: 1.7,
-        recordings: 123,
-        recording_skip: 257,
-        recordings_until_backup: 1111,
-        rng_seed: 55,
+    // let run_info = RunInfo {
+    //     shape: [1, 2, 3, 4],
+    //     z_order: 7,
+    //     beta: 0.1,
+    //     lambda: 1.7,
+    //     recordings: 123,
+    //     recording_skip: 257,
+    //     recordings_until_backup: 1111,
+    //     rng_seed: 55,
+    // };
+
+    let run_info = RunInfo {
+        experiment_parameters: z_n_gauge::sheduler::executor::ExperimentParameters {
+            shape: [1, 2, 3, 4],
+            z_order: 7,
+            beta: 0.1,
+            lambda: 1.7,
+            rng_seed: 55,
+        },
+        run_parameters: z_n_gauge::sheduler::executor::RunParameters {
+            recordings: 123,
+            recording_skip: 257,
+            recordings_until_backup: 1111,
+        },
     };
 
     let rng = Pcg64Mcg::new(0);
@@ -26,12 +41,12 @@ fn main() {
         .into_dyn();
 
     let lattice_backup = LatticeBackup {
-        experiment_parameters: executor_parameters,
+        run_info,
         edges_flat_data: vec![0, 1, 2, 3, 4],
         rng_gen: rng,
         performed_updates: 22,
         accepted_updates: 44,
-        recordings: recordings,
+        recordings,
     };
 
     let mut file = io::BufWriter::new(File::create("zzz.npy").unwrap());

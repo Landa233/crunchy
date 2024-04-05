@@ -6,7 +6,7 @@ use crate::{
     gauge_fields::{
         cubes::MonopoleField, edges, lattice::ZNParameters, plaquettes::PlaquetteField,
     },
-    sheduler::executor::ExecutorParameters,
+    sheduler::executor::{ExperimentParameters, RunInfo},
 };
 
 use super::experiment::Experiment;
@@ -18,13 +18,13 @@ pub struct LatticeBackup {
     pub performed_updates: u64,
     pub accepted_updates: u64,
     pub recordings: Array<u8, IxDyn>,
-    pub experiment_parameters: ExecutorParameters,
+    pub run_info: RunInfo,
 }
 
 pub fn backup_experiment<const ZORDER: usize>(
     experiment: &Experiment<ZORDER>,
-    experiment_parameters: ExecutorParameters,
-    recordings: &Array<u8, IxDyn>,
+    run_info: RunInfo,
+    recordings: Array<u8, IxDyn>,
 ) -> LatticeBackup {
     let mut edges_flat_data = vec![];
 
@@ -40,23 +40,24 @@ pub fn backup_experiment<const ZORDER: usize>(
         rng_gen: experiment.rng_gen.clone(),
         performed_updates,
         accepted_updates,
-        recordings: recordings.clone(),
-        experiment_parameters,
+        recordings,
+        run_info,
     }
 }
 
 impl LatticeBackup {
     pub fn reboot_experiment<const ZORDER: usize>(&self) -> Experiment<ZORDER> {
-        let ExecutorParameters {
-            shape,
-            z_order,
-            beta,
-            lambda,
-            recordings,
-            recording_skip,
-            recordings_until_backup,
-            rng_seed,
-        } = self.experiment_parameters;
+        let RunInfo {
+            experiment_parameters:
+                ExperimentParameters {
+                    shape,
+                    z_order,
+                    beta,
+                    lambda,
+                    ..
+                },
+            run_parameters,
+        } = self.run_info;
 
         let mut experiment = Experiment::<ZORDER>::new(
             shape.into(),
