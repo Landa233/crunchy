@@ -1,117 +1,31 @@
-// use ndarray::{s, Array, IxDyn};
-// use npyz::{AutoSerialize, Deserialize, Serialize};
-
-// use crate::experiment::experiment::Experiment;
-
-// #[derive(Debug, Clone, Copy, Serialize, Deserialize, AutoSerialize, PartialEq)]
-// pub struct RunInfo {
-//     pub experiment_parameters: ExperimentParameters,
-//     pub run_parameters: RunParameters,
-// }
-
-// #[derive(Debug, Clone, Copy, Serialize, Deserialize, AutoSerialize, PartialEq)]
-// pub struct ExperimentParameters {
-//     pub shape: [u32; 4],
-
-//     pub z_order: u32,
-//     pub beta: f32,
-//     pub lambda: f32,
-
-//     pub rng_seed: u64,
-// }
-
-// #[derive(Debug, Copy, Clone, Serialize, Deserialize, AutoSerialize, PartialEq)]
-// pub struct RunParameters {
-//     pub recordings: u32,
-//     pub recording_skip: u32,
-//     pub recordings_until_backup: u32,
-// }
-
-// pub fn execute(backup: LatticeBackup) {
-//     let mut experiment: Experiment<3> = backup.reboot_experiment();
-
-//     let RunInfo {
-//         experiment_parameters: ExperimentParameters { shape, z_order, .. },
-//         run_parameters:
-//             RunParameters {
-//                 recordings,
-//                 recording_skip,
-//                 recordings_until_backup,
-//             },
-//     } = backup.run_info;
-
-//     let [x_dim, y_dim, z_dim, t_dim] = shape;
-
-//     let x_dim = x_dim as usize;
-//     let y_dim = y_dim as usize;
-//     let z_dim = z_dim as usize;
-//     let t_dim = t_dim as usize;
-//     let recordings = recordings as usize;
-
-//     let res_shape = [recordings, x_dim, y_dim, z_dim];
-
-//     let zeros: Vec<u8> = vec![0; res_shape.iter().product()];
-
-//     let mut polyakov_recordings: Array<u8, IxDyn> =
-//         Array::from_shape_vec(res_shape, zeros).unwrap().into_dyn();
-
-//     let mut prev_backup = 0;
-//     let mut backup_counter = 0;
-
-//     for i in 0..recordings {
-//         for x in 0..x_dim {
-//             for y in 0..y_dim {
-//                 for z in 0..z_dim {
-//                     let mut singe_loop = 0;
-//                     for t in 0..t_dim {
-//                         let a = experiment.sim.edges[[3, x, y, z, t]];
-//                         singe_loop += a.data.phase;
-//                     }
-//                     singe_loop %= z_order as usize;
-//                     polyakov_recordings[[i, x, y, z]] = singe_loop as u8;
-//                 }
-//             }
-//         }
-
-//         backup_counter += 1;
-//         if backup_counter == recordings_until_backup {
-//             let recording_snipped = polyakov_recordings
-//                 .slice(s![prev_backup..i, .., .., ..])
-//                 .to_owned()
-//                 .into_dyn();
-//             let backup = backup_experiment(&experiment, backup.run_info, recording_snipped);
-
-//             prev_backup = i;
-//             backup_counter = 0;
-//         }
-
-//         for _ in 0..recording_skip {
-//             experiment.sweep();
-//         }
-//     }
-
-// }
+use std::{fs, io};
 
 use ndarray::{Array, IxDyn};
+use npyz::WriterBuilder;
 
 use crate::experiment::{
-    backup::backup::{RebootSeed, RunInfo},
+    backup::backup::{backup_dtype, RebootSeed, RunInfo},
     experiment::Experiment,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct ExecutorParameters {
     pub recordings: u32,
     pub recording_skip: u32,
     pub recordings_until_backup: u32,
+    pub run_id: u32,
+    pub parent_path: String,
 }
 
 pub fn execute<const ZORDER: usize>(exec_par: ExecutorParameters, reboot_seed: RebootSeed) {
     assert!(ZORDER == reboot_seed.experiment_parameters.z_order as usize);
 
+    let run_folder_name = format!("{}/{}", exec_par.parent_path, exec_par.run_id);
+    fs::create_dir_all(&run_folder_name).unwrap();
+
     let mut experiment = Experiment::<ZORDER>::reboot_experiment(reboot_seed);
 
-    let mut backup_number = 0;
+    let mut backup_number = 1;
     let mut recordings_to_go = exec_par.recordings;
     let recordings_until_backup = exec_par.recordings_until_backup;
 
@@ -146,11 +60,21 @@ pub fn execute<const ZORDER: usize>(exec_par: ExecutorParameters, reboot_seed: R
             recordings_until_backup,
             backup_number,
             recording_time,
+            run_id: exec_par.run_id,
         };
 
         let backup = experiment.backup(polyakov_recordings, run_info);
 
-        todo!("Save backup");
+        let backup_folder_name = format!("{}/{}.npy", run_folder_name, backup_number);
+        let mut file = io::BufWriter::new(fs::File::create(&backup_folder_name).unwrap());
+        let mut writer = npyz::WriteOptions::new()
+            .dtype(backup_dtype(&backup))
+            .writer(&mut file)
+            .begin_1d()
+            .unwrap();
+
+        writer.push(&backup).unwrap();
+        writer.finish().unwrap();
 
         recordings_to_go -= recordings;
         backup_number += 1;

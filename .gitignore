@@ -3,3 +3,4 @@
 *.npz
 *.pdf
 /myenv
+/_test

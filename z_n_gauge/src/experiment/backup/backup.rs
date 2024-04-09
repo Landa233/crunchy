@@ -35,13 +35,14 @@ pub struct ExperimentParameters {
     pub rng_seed: u64,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, AutoSerialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, AutoSerialize, PartialEq, Default)]
 pub struct RunInfo {
     pub recordings: u32,
     pub recording_skip: u32,
     pub recordings_until_backup: u32,
     pub backup_number: u32,
     pub recording_time: i64,
+    pub run_id: u32,
 }
 #[derive(Debug, Clone, PartialEq)]
 pub struct BackupData {
