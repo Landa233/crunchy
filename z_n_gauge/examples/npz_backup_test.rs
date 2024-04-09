@@ -1,10 +1,7 @@
 use std::{fs::File, io, vec};
 
 use byteorder::{LittleEndian, WriteBytesExt};
-use npyz::{
-    AutoSerialize, DType, Deserialize, NpyReader, Serialize, TypeRead, TypeWrite, WriterBuilder,
-};
-use rand_pcg::Pcg64Mcg;
+use npyz::{DType, Deserialize, Serialize, TypeRead, TypeWrite, WriterBuilder};
 
 #[derive(Debug)]
 struct A {

@@ -80,7 +80,9 @@ fn polyakov_record_range<const ZORDER: usize>(
             lambda,
         };
 
-        let mut sim = Experiment::<ZORDER>::new(grid_shape, sim_pars);
+        let mut rng_gen = rand::thread_rng();
+
+        let mut sim = Experiment::<ZORDER>::new(grid_shape, sim_pars, rng_gen.gen());
 
         let a = record_polyakov_loops::<ZORDER>(&mut sim, complex_roots, recordings);
 
@@ -189,6 +191,7 @@ use npyz::{
     npz, AutoSerialize, DType, Field as NpyField, NpyWriter, Serialize, TypeWrite, WriterBuilder,
 };
 
+use rand::Rng;
 use z_n_gauge::{experiment::experiment::Experiment, gauge_fields::lattice::ZNParameters};
 use zip::write::FileOptions;
 
