@@ -8,7 +8,7 @@ use z_n_gauge::{
         experiment::{generate_cosine, Experiment},
     },
     gauge_fields::lattice::ZNParameters,
-    sheduler::executor::{execute, ExecutorParameters},
+    sheduler::executor::{execute, ExecutorParameters, HaltingCondition},
 };
 
 fn main() {
@@ -29,7 +29,7 @@ fn main() {
     let backup = experiment.backup(rec, run_info);
 
     let executor_parameters = ExecutorParameters {
-        recordings: 1001,
+        halting_condition: HaltingCondition::Recordings(5000),
         recording_skip: 1,
         recordings_until_backup: 1000,
         run_id: 1,

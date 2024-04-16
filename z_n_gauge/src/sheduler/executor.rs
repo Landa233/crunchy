@@ -1,37 +1,62 @@
-use std::{fs, io};
+use std::{fs, io, time::Instant};
 
+use chrono::{Duration, Utc};
 use ndarray::{Array, IxDyn};
 use npyz::WriterBuilder;
+use serde::Serialize;
 
 use crate::experiment::{
     backup::backup::{backup_dtype, RebootSeed, RunInfo},
     experiment::Experiment,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 pub struct ExecutorParameters {
-    pub recordings: u32,
+    pub halting_condition: HaltingCondition,
     pub recording_skip: u32,
     pub recordings_until_backup: u32,
     pub run_id: u32,
     pub parent_path: String,
 }
 
+#[derive(Clone, Copy)]
+pub enum HaltingCondition {
+    Recordings(u32),
+    Time(Duration),
+}
+
+impl Serialize for HaltingCondition {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            HaltingCondition::Recordings(rec) => serializer.serialize_u32(*rec),
+            HaltingCondition::Time(duration) => serializer.serialize_i64(duration.num_seconds()),
+        }
+    }
+}
+
 pub fn execute<const ZORDER: usize>(exec_par: ExecutorParameters, reboot_seed: RebootSeed) {
     assert!(ZORDER == reboot_seed.experiment_parameters.z_order as usize);
 
-    let run_folder_name = format!("{}/{}", exec_par.parent_path, exec_par.run_id);
-    fs::create_dir_all(&run_folder_name).unwrap();
+    fs::create_dir_all(&exec_par.parent_path).unwrap();
 
     let mut experiment = Experiment::<ZORDER>::reboot_experiment(reboot_seed);
 
     let mut backup_number = 1;
-    let mut recordings_to_go = exec_par.recordings;
+
     let recordings_until_backup = exec_par.recordings_until_backup;
 
     let shape = experiment.sim.shape;
 
-    while recordings_to_go > 0 {
+    let (mut recordings_to_go, duration) = match exec_par.halting_condition {
+        HaltingCondition::Recordings(rec) => (rec, Duration::weeks(20000000)),
+        HaltingCondition::Time(duration) => (2_u32.pow(31), duration),
+    };
+    let start_time = Utc::now();
+
+    while recordings_to_go > 0 || Utc::now() - start_time > duration {
         let recordings = if recordings_to_go > recordings_until_backup {
             recordings_until_backup
         } else {
@@ -65,7 +90,7 @@ pub fn execute<const ZORDER: usize>(exec_par: ExecutorParameters, reboot_seed: R
 
         let backup = experiment.backup(polyakov_recordings, run_info);
 
-        let backup_folder_name = format!("{}/{}.npy", run_folder_name, backup_number);
+        let backup_folder_name = format!("{}/{}.npy", exec_par.parent_path, backup_number);
         let mut file = io::BufWriter::new(fs::File::create(&backup_folder_name).unwrap());
         let mut writer = npyz::WriteOptions::new()
             .dtype(backup_dtype(&backup))

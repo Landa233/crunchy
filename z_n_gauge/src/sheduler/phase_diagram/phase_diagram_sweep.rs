@@ -1,4 +1,4 @@
-use std::fmt::format;
+use std::{fmt::format, num::NonZeroUsize};
 
 use chrono::prelude::*;
 use rand::Rng;
@@ -10,23 +10,23 @@ use crate::{
         experiment::{generate_cosine, Experiment},
     },
     gauge_fields::lattice::ZNParameters,
-    sheduler::executor::{execute, ExecutorParameters},
+    sheduler::executor::{execute, ExecutorParameters, HaltingCondition},
 };
+
+use super::zipper::archive;
 
 // use super::executor::{execute, ExecutorParameters};
 
 #[derive(Clone, Serialize)]
-pub struct PhaseDiagram {
-    pub beta_range: [f32; 2],
-    pub beta_steps: usize,
+pub struct PhaseDiagram<const ZORDER: usize> {
+    pub beta_range: Range,
 
-    pub lambda_range: [f32; 2],
-    pub lambda_steps: usize,
+    pub lambda_range: Range,
 
     pub experiments_per_point: usize,
 
     pub number_of_threads: usize,
-    pub recordings: usize,
+    pub halting_condition: HaltingCondition,
     pub recording_skip: usize,
     pub recordings_until_backup: usize,
 
@@ -35,35 +35,49 @@ pub struct PhaseDiagram {
     pub folder_name: String,
 }
 
-pub fn phase_diagram_sweep(phase_diagram: PhaseDiagram) {
+#[derive(Clone, Serialize)]
+pub struct Range(pub [f32; 2], pub NonZeroUsize);
+
+impl Range {
+    pub fn new(range: [f32; 2], steps: usize) -> Self {
+        Self(range, NonZeroUsize::new(steps).unwrap())
+    }
+}
+
+pub fn return_steps(range: Range) -> Vec<f32> {
+    match range {
+        Range([a, b], steps) => {
+            let steps = steps.get();
+            if steps == 1 {
+                return vec![a];
+            }
+
+            let delta = (b - a) / (steps - 1) as f32;
+            (0..steps)
+                .into_iter()
+                .map(|i| a + i as f32 * delta)
+                .collect::<Vec<f32>>()
+        }
+    }
+}
+
+pub fn phase_diagram_sweep<const ZORDER: usize>(phase_diagram: PhaseDiagram<ZORDER>) {
     let phase_diagram_json = phase_diagram.clone();
 
     let PhaseDiagram {
         beta_range,
-        beta_steps,
         lambda_range,
-        lambda_steps,
         experiments_per_point,
         number_of_threads,
-        recordings,
+        halting_condition,
         recording_skip,
         recordings_until_backup,
         lattice_shape,
         folder_name,
     } = phase_diagram;
 
-    let delta_beta = (beta_range[1] - beta_range[0]) / (beta_steps - 1) as f32;
-    let delta_lambda = (lambda_range[1] - lambda_range[0]) / (lambda_steps - 1) as f32;
-
-    let betas = (0..beta_steps)
-        .into_iter()
-        .map(|i| beta_range[0] + i as f32 * delta_beta)
-        .collect::<Vec<f32>>();
-
-    let lambdas = (0..lambda_steps)
-        .into_iter()
-        .map(|i| lambda_range[0] + i as f32 * delta_lambda)
-        .collect::<Vec<f32>>();
+    let betas = return_steps(beta_range);
+    let lambdas = return_steps(lambda_range);
 
     let mut experiments = vec![];
 
@@ -72,6 +86,8 @@ pub fn phase_diagram_sweep(phase_diagram: PhaseDiagram) {
     let root = folder_name;
     let current_path = Local::now().format("%Y-%m-%d--%H-%M-%S").to_string();
     let current_path = format!("{}/{}", root, current_path);
+
+    let run_path = current_path.clone();
 
     // Serialize phase_diagram_parameters to json
     let phase_diagram_parameters = serde_json::to_string_pretty(&phase_diagram_json).unwrap();
@@ -96,7 +112,8 @@ pub fn phase_diagram_sweep(phase_diagram: PhaseDiagram) {
 
                 let rng_seed = rng.gen();
 
-                let experiment = Experiment::<3>::new(lattice_shape.into(), sim_pars, rng_seed);
+                let experiment =
+                    Experiment::<ZORDER>::new(lattice_shape.into(), sim_pars, rng_seed);
 
                 let experiment_file_name = format!(
                     "{}/{}-b_{}-l_{}",
@@ -106,7 +123,7 @@ pub fn phase_diagram_sweep(phase_diagram: PhaseDiagram) {
                     format_float(*lambda)
                 );
                 let executor_parameters = ExecutorParameters {
-                    recordings: recordings as u32,
+                    halting_condition,
                     recording_skip: recording_skip as u32,
                     recordings_until_backup: recordings_until_backup as u32,
                     run_id: i as u32,
@@ -132,10 +149,12 @@ pub fn phase_diagram_sweep(phase_diagram: PhaseDiagram) {
             experiments
                 .into_iter()
                 .for_each(|(executor_parameters, reboot_seed)| {
-                    execute::<3>(executor_parameters, reboot_seed);
+                    execute::<ZORDER>(executor_parameters, reboot_seed);
                 });
         }));
     });
 
     threads.into_iter().for_each(|t| t.join().unwrap());
+
+    archive(run_path);
 }
