@@ -16,7 +16,7 @@ fn main() {
         halting_condition: HaltingCondition::Recordings(20000),
         recording_skip: 1,
         recordings_until_backup: 3000,
-        lattice_shape: [12, 12, 12, 12],
+        lattice_shape: [10, 10, 10, 10],
         folder_name: "../../../nobackup/jhtb65/_recordings".to_string(),
     };
 
