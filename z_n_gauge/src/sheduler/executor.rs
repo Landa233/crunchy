@@ -52,17 +52,19 @@ pub fn execute<const ZORDER: usize>(exec_par: ExecutorParameters, reboot_seed: R
 
     let shape = experiment.sim.shape;
 
-    let (mut recordings_to_go, duration) = match exec_par.halting_condition {
+    let (max_recordings, duration) = match exec_par.halting_condition {
         HaltingCondition::Recordings(rec) => (rec, Duration::weeks(20000000)),
         HaltingCondition::Time(duration) => (2_u32.pow(31), duration),
     };
     let start_time = Utc::now();
 
-    while recordings_to_go > 0 || Utc::now() - start_time > duration {
-        let recordings = if recordings_to_go > recordings_until_backup {
+    let mut recordings_counter = 0;
+
+    while recordings_counter < max_recordings && Utc::now() - start_time < duration {
+        let recordings = if max_recordings - recordings_counter >= recordings_until_backup {
             recordings_until_backup
         } else {
-            recordings_to_go
+            max_recordings - recordings_counter
         };
 
         let rec_shape = [recordings as usize, shape[0], shape[1], shape[2]];
@@ -103,7 +105,7 @@ pub fn execute<const ZORDER: usize>(exec_par: ExecutorParameters, reboot_seed: R
         writer.push(&backup).unwrap();
         writer.finish().unwrap();
 
-        recordings_to_go -= recordings;
+        recordings_counter += recordings;
         backup_number += 1;
     }
 }
