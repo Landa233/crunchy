@@ -1,5 +1,7 @@
+use std::path::Path;
+
 use byteorder::{LittleEndian, WriteBytesExt};
-use ndarray::{Array, IxDyn};
+use ndarray::{Array, Axis, IxDyn};
 use npyz::{AutoSerialize, DType, Deserialize, Serialize, TypeWrite};
 use rand_pcg::Pcg64Mcg;
 
@@ -10,6 +12,35 @@ pub struct BackUp {
     pub reboot_seed: RebootSeed,
     pub backup_data: BackupData,
     pub run_info: RunInfo,
+}
+
+impl BackUp {
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Self {
+        let bytes = std::fs::read(path).unwrap();
+        let reader = npyz::NpyFile::new(&bytes[..]).unwrap();
+
+        let mut deserialized_backup: Vec<BackUp> = reader.into_vec().unwrap();
+        deserialized_backup.remove(0)
+    }
+
+    pub fn merge_backups(mut backups: Vec<BackUp>) -> BackUp {
+        let mut total_recordings = 0;
+        let mut array_views = vec![];
+        for backup in backups.iter() {
+            total_recordings += backup.run_info.recordings;
+            array_views.push(backup.backup_data.recorded_data.view());
+        }
+
+        let merged_data = ndarray::concatenate(Axis(0), &array_views).unwrap();
+
+        let mut backup = backups.pop().unwrap();
+
+        backup.run_info.recordings = total_recordings;
+        backup.backup_data.recorded_data = merged_data.into_dyn();
+        backup.run_info.backup_number = 1;
+
+        backup
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -35,13 +66,14 @@ pub struct ExperimentParameters {
     pub rng_seed: u64,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, AutoSerialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, AutoSerialize, PartialEq, Default)]
 pub struct RunInfo {
     pub recordings: u32,
     pub recording_skip: u32,
     pub recordings_until_backup: u32,
     pub backup_number: u32,
     pub recording_time: i64,
+    pub run_id: u32,
 }
 #[derive(Debug, Clone, PartialEq)]
 pub struct BackupData {

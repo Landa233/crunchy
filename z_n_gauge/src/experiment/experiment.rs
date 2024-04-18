@@ -71,7 +71,7 @@ impl<const ZORDER: usize> Experiment<ZORDER> {
         }
     }
 
-    pub fn backup(&self, polyakov_recordings: Array<u8, IxDyn>, run_info: RunInfo) -> BackUp {
+    pub fn to_seed(&self) -> RebootSeed {
         let edges = self
             .sim
             .edges
@@ -110,6 +110,12 @@ impl<const ZORDER: usize> Experiment<ZORDER> {
             last_state,
             experiment_parameters,
         };
+
+        return reboot_seed;
+    }
+
+    pub fn backup(&self, polyakov_recordings: Array<u8, IxDyn>, run_info: RunInfo) -> BackUp {
+        let reboot_seed = self.to_seed();
 
         let backup_data = BackupData {
             recorded_data: polyakov_recordings,
@@ -184,7 +190,7 @@ impl<const ZORDER: usize> Experiment<ZORDER> {
     }
 }
 
-fn generate_cosine<const ZORDER: usize>() -> [f32; ZORDER] {
+pub fn generate_cosine<const ZORDER: usize>() -> [f32; ZORDER] {
     let pi = std::f32::consts::PI;
     let mut res = [0.0; ZORDER];
 
