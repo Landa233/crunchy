@@ -1,4 +1,6 @@
 #![feature(generic_const_exprs)]
+#![allow(incomplete_features)]
+
 use z_n_gauge::sheduler::{
     executor::HaltingCondition,
     phase_diagram::phase_diagram_sweep::{phase_diagram_sweep, PhaseDiagram, Range},

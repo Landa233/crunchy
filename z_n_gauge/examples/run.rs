@@ -59,7 +59,7 @@ fn polyakov_record_range<const ZORDER: usize>(
     beta_slice: &[f32],
     recordings: usize,
     grid_shape: Shape<4>,
-    thermalization_steps: usize,
+    _thermalization_steps: usize,
     number_of_threads: usize,
     lambda: f32,
 ) -> Vec<(f32, Array<[f32; 2], IxDyn>)> {

@@ -1,10 +1,11 @@
 #![feature(generic_const_exprs)]
+#![allow(incomplete_features)]
 
 use crunchy::crarray::shape::Shape;
 use ndarray::Array;
 use z_n_gauge::{
     experiment::{
-        backup::backup::{LastState, RebootSeed, RunInfo},
+        backup::backup::RunInfo,
         experiment::{generate_cosine, Experiment},
     },
     gauge_fields::lattice::ZNParameters,
