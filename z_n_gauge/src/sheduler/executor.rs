@@ -40,6 +40,8 @@ impl Serialize for HaltingCondition {
 pub fn execute<const ZORDER: usize>(exec_par: ExecutorParameters, reboot_seed: RebootSeed) {
     assert!(ZORDER == reboot_seed.experiment_parameters.z_order as usize);
 
+    println!("{:?}", exec_par.run_id);
+
     fs::create_dir_all(&exec_par.parent_path).unwrap();
 
     let mut experiment = Experiment::<ZORDER>::reboot_experiment(reboot_seed);

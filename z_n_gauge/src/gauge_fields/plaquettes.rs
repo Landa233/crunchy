@@ -60,6 +60,10 @@ where
     [(); 8 * binomial_coefficient(NDIM, 3)]:,
 {
     fn shift<const ZORDER: usize>(phase: usize) -> isize {
+        if ZORDER != 3 {
+            return phase as isize;
+        }
+
         if phase <= ZORDER / 2 {
             return phase as isize;
         }
@@ -73,9 +77,9 @@ where
     windings += shift::<ZORDER>(grid.edges[edges[2]].data.phase);
     windings -= shift::<ZORDER>(grid.edges[edges[3]].data.phase);
 
-    if ZORDER != 3 {
-        panic!("Only implemented for Z3")
-    }
+    // if ZORDER != 3 {
+    //     panic!("Only implemented for Z3")
+    // }
 
     let mut res = 0;
     // For ZORDER > 3, windings of 2?

@@ -134,8 +134,6 @@ for i in range(n):
             axes[-1].add_artist(circle)
 
 plt.gca().set_adjustable("box")
-# plt.savefig(
-#     f"z_n_gauge/data_analysis/figs/z_3_discs.pdf")
 
 plt.show()
 
