@@ -12,11 +12,11 @@ fn main() {
         lambda_range: Range::new([1.0, 1.0], 1),
         experiments_per_point: 1,
         number_of_threads: 8,
-        halting_condition: HaltingCondition::Recordings(10000),
+        halting_condition: HaltingCondition::Recordings(1000),
         recording_skip: 1,
         recordings_until_backup: 1234,
-        lattice_shape: [6, 6, 6, 6],
-        folder_name: "_recordings".to_string(),
+        lattice_shape: [4, 4, 4, 4],
+        folder_name: "../../../nobackup/jhtb65/_recordings".to_string(),
     };
 
     phase_diagram_sweep(phase_diagram);
