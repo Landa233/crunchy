@@ -43,7 +43,7 @@ def plot_scatters(columns, indices_to_scatter, time_series, fig):
 
     axes = []
 
-    rows = 1 + len(indices_to_scatter) // columns
+    rows = min(1 + len(indices_to_scatter) // columns, 5)
     gs = GridSpec(rows, columns, figure=fig)
 
     for i in range(rows):
@@ -54,6 +54,18 @@ def plot_scatters(columns, indices_to_scatter, time_series, fig):
             index = i * columns + j
 
             time_serie = time_series[index]
+
+            # Concatenate the time series with its rotation by 2pi/z_order
+
+            time_serie_rotated = time_serie.copy()
+            rotation_matrix = np.array([[np.cos(2 * np.pi / 3), -np.sin(2 * np.pi / 3)], [
+                                       np.sin(2 * np.pi / 3), np.cos(2 * np.pi / 3)]])
+
+            time_serie_rotated = np.dot(time_serie, rotation_matrix)
+            time_serie = np.concatenate([time_serie, time_serie_rotated])
+
+            time_serie_rotated = np.dot(time_serie_rotated, rotation_matrix)
+            time_serie = np.concatenate([time_serie, time_serie_rotated])
 
             x = time_serie[:, 0]
             y = time_serie[:, 1]
