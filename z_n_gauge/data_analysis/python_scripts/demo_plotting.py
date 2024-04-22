@@ -7,17 +7,18 @@ from z_n_gauge.data_analysis.plot_times_series import draw_times_series
 from z_n_gauge.data_analysis.python_scripts.plotters import plot_data, plot_scatters
 
 
-data = np.load("_recordings/CLUSTER_2024-04-18--17-27-02/archive.npz")
+data = np.load("_recordings/Cluster_L10_2024-04-19--08-38-55/archive.npz")
 
 
 sorted_list = sorted(
     data.values(), key=lambda x: x["run_info"]["run_id"][0])
 combined = np.concatenate(sorted_list)
 
-x = 40
-left = 40+x
-right = 60+x
-combined = combined[left:right]
+
+left = 70
+x = 30
+
+combined = combined[left:left+x]
 
 translated_combines = combined.copy()
 

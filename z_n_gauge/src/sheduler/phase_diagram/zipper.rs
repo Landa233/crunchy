@@ -54,6 +54,8 @@ pub fn archive<P: AsRef<Path> + std::fmt::Display>(run_path: P) {
             }
         }
 
+        // files_to_merge.truncate(64);
+
         let min = min_file_name.iter().min();
         for files in files_to_merge.iter_mut() {
             files.truncate(*min.unwrap() as usize);
