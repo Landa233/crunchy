@@ -1,16 +1,16 @@
-use std::{fs, io, time::Instant};
+use std::{fs, io, ops::Deref, time::Instant};
 
 use chrono::{Duration, Utc};
 use ndarray::{Array, IxDyn};
 use npyz::WriterBuilder;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::experiment::{
     backup::backup::{backup_dtype, RebootSeed, RunInfo},
     experiment::Experiment,
 };
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ExecutorParameters {
     pub halting_condition: HaltingCondition,
     pub recording_skip: u32,
@@ -19,21 +19,39 @@ pub struct ExecutorParameters {
     pub parent_path: String,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub enum HaltingCondition {
     Recordings(u32),
-    Time(Duration),
+    Time(DurationWrapper),
 }
 
-impl Serialize for HaltingCondition {
+#[derive(Clone, Copy, Debug)]
+pub struct DurationWrapper(pub Duration);
+
+impl Serialize for DurationWrapper {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        match self {
-            HaltingCondition::Recordings(rec) => serializer.serialize_u32(*rec),
-            HaltingCondition::Time(duration) => serializer.serialize_i64(duration.num_seconds()),
-        }
+        serializer.serialize_i64(self.0.num_seconds())
+    }
+}
+
+impl<'de> Deserialize<'de> for DurationWrapper {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let seconds = i64::deserialize(deserializer)?;
+        Ok(Self(Duration::seconds(seconds)))
+    }
+}
+
+impl Deref for DurationWrapper {
+    type Target = Duration;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -54,7 +72,7 @@ pub fn execute<const ZORDER: usize>(exec_par: ExecutorParameters, reboot_seed: R
 
     let (max_recordings, duration) = match exec_par.halting_condition {
         HaltingCondition::Recordings(rec) => (rec, Duration::weeks(20000000)),
-        HaltingCondition::Time(duration) => (2_u32.pow(31), duration),
+        HaltingCondition::Time(duration) => (2_u32.pow(31), *duration),
     };
     let start_time = Utc::now();
 

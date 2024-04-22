@@ -1,8 +1,10 @@
 #![feature(generic_const_exprs)]
-use chrono::Duration;
+#![allow(incomplete_features)]
 use z_n_gauge::sheduler::{
     executor::HaltingCondition,
-    phase_diagram::phase_diagram_sweep::{phase_diagram_sweep, PhaseDiagram, Range},
+    phase_diagram::phase_diagram_sweep::{
+        phase_diagram_sweep, ClusterSettings, LatticeShapes, PhaseDiagram, Range,
+    },
 };
 
 fn main() {
@@ -16,8 +18,9 @@ fn main() {
         halting_condition: HaltingCondition::Recordings(20000),
         recording_skip: 1,
         recordings_until_backup: 5000,
-        lattice_shape: [10, 10, 10, 10],
-        folder_name: "../../../nobackup/jhtb65/_recordings".to_string(),
+        lattice_shapes: LatticeShapes::Single([10, 10, 10, 10]),
+        root_directory: "../../../nobackup/jhtb65/_recordings".to_string(),
+        cluster_settings: ClusterSettings::default(),
     };
 
     phase_diagram_sweep(phase_diagram);
