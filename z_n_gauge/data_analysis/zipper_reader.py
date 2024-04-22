@@ -10,4 +10,13 @@ import numpy as np
 #     print(data[key]['run_info'].dtype)
 
 
-print(np.linspace(0, 1, 1))
+# print(np.linspace(0, 1, 1))
+
+
+data = np.load('test/2024-04-22--15-28-11/archive.npz')
+
+
+for key in data.keys():
+    print(key)
+    # print(data[key].dtype.names)
+    # print(data[key]['run_info'].dtype)

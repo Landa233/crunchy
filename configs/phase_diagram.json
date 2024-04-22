@@ -1,0 +1,43 @@
+{
+    "beta_range": [
+        [
+            0.48,
+            0.52
+        ],
+        24
+    ],
+    "lambda_range": [
+        [
+            1.0,
+            1.0
+        ],
+        1
+    ],
+    "experiments_per_point": 1,
+    "number_of_threads": 48,
+    "halting_condition": {
+        "Recordings": 1000
+    },
+    "recording_skip": 1,
+    "recordings_until_backup": 1000,
+    "lattice_shapes": {
+        "Sweep": {
+            "start": 3,
+            "end": 5
+        }
+    },
+    "root_directory": "../../../nobackup/jhtb65/_recordings",
+    "cluster_settings": {
+        "cluster_time": {
+            "days": 0,
+            "hours": 0,
+            "minutes": 14,
+            "seconds": 0
+        },
+        "ram": 50,
+        "temporary_storage": 100,
+        "email": "jhtb65@durham.ac.uk",
+        "path_to_executable": "target/release/examples/run_sweep",
+        "queue": "Test"
+    }
+}

@@ -11,6 +11,10 @@ use crate::experiment::backup::backup::{backup_dtype, BackUp};
 pub fn archive<P: AsRef<Path> + std::fmt::Display>(run_path: P) {
     let mut counter = 0;
 
+    println!("{}", run_path);
+
+    // panic!();
+
     let run_path = run_path.to_string();
     if let Ok(entries) = fs::read_dir(&run_path) {
         let mut file_names = vec![];
