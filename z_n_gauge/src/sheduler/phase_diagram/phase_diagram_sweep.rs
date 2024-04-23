@@ -55,7 +55,7 @@ impl<const ZORDER: usize> PhaseDiagram<ZORDER> {
             #SBATCH -c {}\n\
             #SBATCH --time={}-{}:{}:{}\n\
             #SBATCH --mem={}G\n\
-            #SBATCH --gres=tmp:{}\n\
+            #SBATCH --gres=tmp:{}G\n\
             #SBATCH --mail-user={}\n\
             #SBATCH --mail-type=ALL\n\
             #SBATCH -p {}\n\n\n\
