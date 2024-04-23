@@ -25,15 +25,16 @@ fn main() {
 
     phase_diagram.write_batch_file(file_name);
 
-    // run batch file
-    let output = std::process::Command::new("sh")
-        .arg(file_name)
-        .status()
-        .unwrap();
+    let command = "sbatch";
+    let args = ["crunchy.sh"];
 
-    if output.success() {
-        println!("Successfully ran batch file");
-    } else {
-        println!("Failed to run batch file");
-    }
+    use std::process::Command;
+    // Execute the command
+    let output = Command::new(command)
+        .args(&args)
+        .output()
+        .expect("Failed to execute command");
+
+    // Print the output
+    println!("Command executed with output: {:?}", output);
 }
