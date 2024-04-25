@@ -13,7 +13,7 @@ import numpy as np
 # print(np.linspace(0, 1, 1))
 
 
-data = np.load('test/2024-04-22--15-28-11/archive.npz')
+data = np.load('_recordings/CLUSTER-2024-04-23--08-17-20/archive.npz')
 
 
 for key in data.keys():
