@@ -1,15 +1,11 @@
-use std::{fmt::format, fs::File, io::Write, num::NonZeroUsize};
+use std::{fs::File, io::Write, num::NonZeroUsize};
 
 use chrono::prelude::*;
-use crunchy::lattice;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    experiment::{
-        backup::backup::{ExperimentParameters, RebootSeed},
-        experiment::{generate_cosine, Experiment},
-    },
+    experiment::experiment::{generate_cosine, Experiment},
     gauge_fields::lattice::ZNParameters,
     sheduler::executor::{execute, ExecutorParameters, HaltingCondition},
 };
@@ -175,7 +171,7 @@ pub fn phase_diagram_sweep<const ZORDER: usize>(phase_diagram: PhaseDiagram<ZORD
         recordings_until_backup,
         lattice_shapes,
         root_directory,
-        cluster_settings,
+        ..
     } = phase_diagram;
 
     let betas = return_steps(beta_range);

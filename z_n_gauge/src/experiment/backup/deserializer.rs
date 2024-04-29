@@ -1,5 +1,3 @@
-use std::mem;
-
 use ndarray::Array;
 use npyz::{DType, Deserialize, TypeRead};
 use rand_pcg::Pcg64Mcg;

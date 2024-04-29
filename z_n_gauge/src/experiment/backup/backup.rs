@@ -1,11 +1,8 @@
 use std::path::Path;
 
-use byteorder::{LittleEndian, WriteBytesExt};
 use ndarray::{Array, Axis, IxDyn};
-use npyz::{AutoSerialize, DType, Deserialize, Serialize, TypeWrite};
+use npyz::{AutoSerialize, DType, Deserialize, Serialize};
 use rand_pcg::Pcg64Mcg;
-
-use crate::experiment;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BackUp {

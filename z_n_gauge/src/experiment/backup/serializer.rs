@@ -1,7 +1,5 @@
 use byteorder::{LittleEndian, WriteBytesExt};
-use ndarray::{Array, IxDyn};
-use npyz::{AutoSerialize, DType, Deserialize, Serialize, TypeWrite};
-use rand_pcg::Pcg64Mcg;
+use npyz::{AutoSerialize, Serialize, TypeWrite};
 
 use super::backup::{reboot_seed_dtype, BackUp, ExperimentParameters, RebootSeed, RunInfo};
 
@@ -10,7 +8,7 @@ pub struct BackupWriter {}
 impl Serialize for BackUp {
     type TypeWriter = BackupWriter;
 
-    fn writer(dtype: &npyz::DType) -> Result<Self::TypeWriter, npyz::DTypeError> {
+    fn writer(_dtype: &npyz::DType) -> Result<Self::TypeWriter, npyz::DTypeError> {
         Ok(BackupWriter {})
     }
 }
@@ -20,7 +18,7 @@ pub struct RebootSeedWriter {}
 impl Serialize for RebootSeed {
     type TypeWriter = RebootSeedWriter;
 
-    fn writer(dtype: &npyz::DType) -> Result<Self::TypeWriter, npyz::DTypeError> {
+    fn writer(_dtype: &npyz::DType) -> Result<Self::TypeWriter, npyz::DTypeError> {
         Ok(RebootSeedWriter {})
     }
 }
