@@ -22,7 +22,7 @@ pub fn generate_dtype(input: TokenStream) -> TokenStream {
                 let field_name = field.ident.as_ref().unwrap();
                 let field_type = &field.ty;
                 field_statements.push(quote! {
-                    let __field_type = <#field_type as crate::DTypeable>::generate_dtype(&self.#field_name);
+                    let __field_type = <#field_type as rs_to_npy::dtypeable::DTypeable>::generate_dtype(&self.#field_name);
                     let __field = npyz::Field{
                         name: stringify!(#field_name).to_string(),
                         dtype: __field_type,
@@ -32,7 +32,7 @@ pub fn generate_dtype(input: TokenStream) -> TokenStream {
             }
 
             let expanded = quote! {
-                impl crate::DTypeable for #struct_name{
+                impl rs_to_npy::dtypeable::DTypeable for #struct_name{
                    fn generate_dtype(&self) -> npyz::DType {
                         #(#field_statements)*
 

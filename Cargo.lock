@@ -1040,6 +1040,8 @@ dependencies = [
  "rand",
  "rand_core",
  "rand_pcg",
+ "rs-to-npy-macros",
+ "rs_to_npy",
  "serde",
  "serde_json",
  "zip",
