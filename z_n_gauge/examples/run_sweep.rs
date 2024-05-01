@@ -6,7 +6,7 @@ use std::fs;
 use z_n_gauge::measurements::measurement_types::polyakov_loops::PolyakovBackup;
 use z_n_gauge::measurements::sheduler::phase_diagram_sweep;
 use z_n_gauge::measurements::sheduler::MesaurementType;
-use z_n_gauge::measurements::sheduler::PhaseDiagram;
+use z_n_gauge::measurements::sheduler::ShedulerSettings;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -26,7 +26,7 @@ fn main() {
         }
     };
 
-    let phase_diagram: PhaseDiagram<3> = serde_json::from_str(&contents).unwrap();
+    let phase_diagram: ShedulerSettings<3> = serde_json::from_str(&contents).unwrap();
 
     let measurement_type = phase_diagram.measurement_type;
 

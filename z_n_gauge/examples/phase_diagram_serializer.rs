@@ -8,8 +8,9 @@ use z_n_gauge::measurements::sheduler::ClusterSettings;
 use z_n_gauge::measurements::sheduler::ClusterTime;
 use z_n_gauge::measurements::sheduler::LatticeShapes;
 use z_n_gauge::measurements::sheduler::MesaurementType;
-use z_n_gauge::measurements::sheduler::PhaseDiagram;
+
 use z_n_gauge::measurements::sheduler::Range;
+use z_n_gauge::measurements::sheduler::ShedulerSettings;
 
 fn main() {
     const ZORDER: usize = 3;
@@ -28,17 +29,17 @@ fn main() {
         queue: ClusterQueue::Test,
     };
 
-    let phase_diagram = PhaseDiagram::<ZORDER> {
-        beta_range: Range::new([0.48, 0.52], 24),
+    let phase_diagram = ShedulerSettings::<ZORDER> {
+        beta_range: Range::new([0.48, 0.52], 8),
         lambda_range: Range::new([1.0, 1.0], 1),
         experiments_per_point: 1,
-        number_of_threads: 128,
-        halting_condition: HaltingCondition::Recordings(20000),
+        number_of_threads: 8,
+        halting_condition: HaltingCondition::Recordings(5000),
         recording_skip: 1,
-        recordings_until_backup: 5000,
-        lattice_shapes: LatticeShapes::Sweep(8..13),
-        root_directory: "../../../nobackup/jhtb65/_recordings".to_string(),
-        // root_directory: "_test".to_string(),
+        recordings_until_backup: 1000,
+        lattice_shapes: LatticeShapes::Sweep(4..6),
+        // root_directory: "../../../nobackup/jhtb65/_recordings".to_string(),
+        root_directory: "_test".to_string(),
         cluster_settings,
         measurement_type: MesaurementType::Polyakovloops,
     };
@@ -57,7 +58,7 @@ fn main() {
     // Deserialize the phase_diagram from the json file
 
     let json = std::fs::read_to_string("configs/phase_diagram.json").unwrap();
-    let phase_diagram: PhaseDiagram<ZORDER> = serde_json::from_str(&json).unwrap();
+    let _phase_diagram: ShedulerSettings<ZORDER> = serde_json::from_str(&json).unwrap();
 
     // phase_diagram_sweep(phase_diagram);
 

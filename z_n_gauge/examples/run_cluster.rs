@@ -1,7 +1,7 @@
 use std::env;
 use std::fs;
 
-use z_n_gauge::measurements::sheduler::PhaseDiagram;
+use z_n_gauge::measurements::sheduler::ShedulerSettings;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -21,7 +21,7 @@ fn main() {
         }
     };
 
-    let phase_diagram: PhaseDiagram<3> = serde_json::from_str(&contents).unwrap();
+    let phase_diagram: ShedulerSettings<3> = serde_json::from_str(&contents).unwrap();
 
     phase_diagram.write_batch_file(file_name);
 

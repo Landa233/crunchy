@@ -1,7 +1,7 @@
-use std::{fs, io};
+use std::fs;
 
 use chrono::{Duration, Utc};
-use ndarray::{Array, IxDyn};
+use ndarray::{Array, Axis, IxDyn};
 use rs_to_npy::array_wrapper::ArrayWrapper;
 use rs_to_npy_macros::DTypeable;
 
@@ -43,8 +43,23 @@ impl BackUp for PolyakovBackup {
         }
     }
 
-    fn merge(backups: Vec<Self>) -> Self {
-        todo!()
+    fn merge(mut backups: Vec<Self>) -> Self {
+        let mut total_recordings = 0;
+        let mut array_views = vec![];
+        for backup in backups.iter() {
+            total_recordings += backup.run_info.recordings;
+            array_views.push(backup.polyakov_loops.polyakov_loops.data.view());
+        }
+
+        let merged_data = ndarray::concatenate(Axis(0), &array_views).unwrap();
+
+        let mut backup = backups.pop().unwrap();
+
+        backup.run_info.recordings = total_recordings;
+        backup.polyakov_loops.polyakov_loops = ArrayWrapper { data: merged_data };
+        backup.run_info.backup_number = 1;
+
+        backup
     }
 
     fn execute<const ZORDER: usize>(exec_par: ExecutorParameters, reboot_seed: RebootSeed) {

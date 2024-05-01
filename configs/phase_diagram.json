@@ -4,7 +4,7 @@
             0.48,
             0.52
         ],
-        24
+        8
     ],
     "lambda_range": [
         [
@@ -14,19 +14,19 @@
         1
     ],
     "experiments_per_point": 1,
-    "number_of_threads": 128,
+    "number_of_threads": 8,
     "halting_condition": {
-        "Recordings": 20000
+        "Recordings": 5000
     },
     "recording_skip": 1,
-    "recordings_until_backup": 5000,
+    "recordings_until_backup": 1000,
     "lattice_shapes": {
         "Sweep": {
-            "start": 8,
-            "end": 13
+            "start": 4,
+            "end": 6
         }
     },
-    "root_directory": "../../../nobackup/jhtb65/_recordings",
+    "root_directory": "_test",
     "cluster_settings": {
         "cluster_time": {
             "days": 0,

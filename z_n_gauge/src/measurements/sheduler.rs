@@ -15,7 +15,7 @@ use super::{
 };
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct PhaseDiagram<const ZORDER: usize> {
+pub struct ShedulerSettings<const ZORDER: usize> {
     pub beta_range: Range,
     pub lambda_range: Range,
 
@@ -40,7 +40,7 @@ pub enum MesaurementType {
     Polyakovloops,
 }
 
-impl<const ZORDER: usize> PhaseDiagram<ZORDER> {
+impl<const ZORDER: usize> ShedulerSettings<ZORDER> {
     pub fn write_batch_file(&self, config_file: &str) {
         let file_path = "crunchy.sh";
 
@@ -168,11 +168,11 @@ pub fn return_steps(range: Range) -> Vec<f32> {
 }
 
 pub fn phase_diagram_sweep<BackUpType: BackUp, const ZORDER: usize>(
-    phase_diagram: PhaseDiagram<ZORDER>,
+    phase_diagram: ShedulerSettings<ZORDER>,
 ) {
     let phase_diagram_json = phase_diagram.clone();
 
-    let PhaseDiagram {
+    let ShedulerSettings {
         beta_range,
         lambda_range,
         experiments_per_point,
@@ -193,11 +193,6 @@ pub fn phase_diagram_sweep<BackUpType: BackUp, const ZORDER: usize>(
     let mut rng = rand::thread_rng();
 
     let folder_name = Local::now().format("%Y-%m-%d--%H-%M-%S").to_string();
-
-    // let current_path = Local::now().format("%Y-%m-%d--%H-%M-%S").to_string();
-    // let current_path = format!("{}/{}", root, current_path);
-
-    // let run_path = current_path.clone();
 
     // Serialize phase_diagram_parameters to json
     let phase_diagram_parameters = serde_json::to_string_pretty(&phase_diagram_json).unwrap();
@@ -271,6 +266,8 @@ pub fn phase_diagram_sweep<BackUpType: BackUp, const ZORDER: usize>(
     });
 
     threads.into_iter().for_each(|t| t.join().unwrap());
+
+    println!("{}", "Completed all experiments");
 
     archive::<BackUpType, _>(folder_path);
 }

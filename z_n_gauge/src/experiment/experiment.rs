@@ -1,7 +1,6 @@
 use crunchy::lattice::fields::Field;
 use crunchy::simulation::simulation::CubicalSimulation;
 use ndarray::Array;
-use ndarray::IxDyn;
 use rs_to_npy::array_wrapper::ArrayWrapper;
 use std::ops::Deref;
 
@@ -114,38 +113,6 @@ impl<const ZORDER: usize> Experiment<ZORDER> {
 
         return reboot_seed;
     }
-
-    // pub fn backup(&self, polyakov_recordings: Array<u8, IxDyn>, run_info: RunInfo) -> BackUp {
-    //     let reboot_seed = self.to_seed();
-
-    //     let backup_data = BackupData {
-    //         recorded_data: polyakov_recordings,
-    //     };
-
-    //     BackUp {
-    //         reboot_seed,
-    //         backup_data,
-    //         run_info,
-    //     }
-    // }
-
-    // pub fn record_experiment(&self, rec_array: &mut Array<u8, IxDyn>, rec_index: usize) {
-    //     let [x_dim, y_dim, z_dim, t_dim] = *self.shape;
-
-    //     for x in 0..x_dim {
-    //         for y in 0..y_dim {
-    //             for z in 0..z_dim {
-    //                 let mut singe_loop = 0;
-    //                 for t in 0..t_dim {
-    //                     let a = self.sim.edges[[3, x, y, z, t]];
-    //                     singe_loop += a.data.phase;
-    //                 }
-    //                 singe_loop %= ZORDER as usize;
-    //                 rec_array[[rec_index, x, y, z]] = singe_loop as u8;
-    //             }
-    //         }
-    //     }
-    // }
 
     pub fn reboot_experiment(reboot_seed: RebootSeed) -> Self {
         let shape = reboot_seed.experiment_parameters.shape;
