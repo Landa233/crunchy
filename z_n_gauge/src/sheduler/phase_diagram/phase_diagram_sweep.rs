@@ -246,12 +246,6 @@ pub fn phase_diagram_sweep<const ZORDER: usize>(phase_diagram: PhaseDiagram<ZORD
 
     let experiments_per_thread = split_into_maximal_sublists(experiments, number_of_threads);
 
-    // let chunk_size = experiments.len() / number_of_threads;
-
-    // // Distribute experiments to threads
-    // let experiments_per_thread: Vec<Vec<(ExecutorParameters, RebootSeed)>> =
-    //     experiments.chunks(chunk_size).map(|s| s.into()).collect();
-
     // run the experiments in parallel threads
     let mut threads = vec![];
     experiments_per_thread.into_iter().for_each(|experiments| {
