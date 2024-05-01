@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use byteorder::WriteBytesExt;
 use npyz::{DType, Deserialize, Field, Serialize};
 use rand_pcg::Pcg64Mcg;
@@ -72,5 +74,13 @@ impl npyz::TypeRead for RngGenWrapperReader {
         let rng_gen: Pcg64Mcg = bincode::deserialize(&rng_bytes).unwrap();
 
         Ok(RngGenWrapper { rng_gen })
+    }
+}
+
+impl Deref for RngGenWrapper {
+    type Target = Pcg64Mcg;
+
+    fn deref(&self) -> &Self::Target {
+        &self.rng_gen
     }
 }

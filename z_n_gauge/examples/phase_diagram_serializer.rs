@@ -1,17 +1,15 @@
 #![feature(generic_const_exprs)]
 #![allow(incomplete_features)]
-use chrono::Duration;
+
 use serde_json;
-use z_n_gauge::sheduler::{
-    executor::{DurationWrapper, HaltingCondition},
-    phase_diagram::{
-        phase_diagram_sweep::{
-            phase_diagram_sweep, ClusterQueue, ClusterSettings, ClusterTime, LatticeShapes,
-            PhaseDiagram, Range,
-        },
-        zipper::archive,
-    },
-};
+use z_n_gauge::measurements::backup::backup_trait::HaltingCondition;
+use z_n_gauge::measurements::sheduler::ClusterQueue;
+use z_n_gauge::measurements::sheduler::ClusterSettings;
+use z_n_gauge::measurements::sheduler::ClusterTime;
+use z_n_gauge::measurements::sheduler::LatticeShapes;
+use z_n_gauge::measurements::sheduler::MesaurementType;
+use z_n_gauge::measurements::sheduler::PhaseDiagram;
+use z_n_gauge::measurements::sheduler::Range;
 
 fn main() {
     const ZORDER: usize = 3;
@@ -42,11 +40,19 @@ fn main() {
         root_directory: "../../../nobackup/jhtb65/_recordings".to_string(),
         // root_directory: "_test".to_string(),
         cluster_settings,
+        measurement_type: MesaurementType::Polyakovloops,
     };
 
     // // Serialize the phase_diagram to a json file
     let json = serde_json::to_string(&phase_diagram).unwrap();
-    std::fs::write("configs/phase_diagram.json", json).unwrap();
+
+    let mut config_path = std::path::PathBuf::new();
+    config_path.push("configs");
+    config_path.push("phase_diagram.json");
+
+    println!("{:?}", config_path);
+
+    std::fs::write(config_path, json).unwrap();
 
     // Deserialize the phase_diagram from the json file
 

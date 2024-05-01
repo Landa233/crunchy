@@ -2,14 +2,7 @@ use npyz::{Deserialize, Serialize};
 use rs_to_npy::array_wrapper::ArrayWrapper;
 use rs_to_npy_macros::DTypeable;
 
-use super::rng_gen_wrapper::RngGenWrapper;
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, DTypeable)]
-pub struct PolyakovLoopsBackup {
-    pub reboot_seed: RebootSeed,
-    pub backup_data: BackupData,
-    pub run_info: RunInfo,
-}
+use crate::measurements::rng_gen_wrapper::RngGenWrapper;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, DTypeable)]
 pub struct RebootSeed {
@@ -42,9 +35,4 @@ pub struct RunInfo {
     pub backup_number: u32,
     pub recording_time: i64,
     pub run_id: u32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, DTypeable)]
-pub struct BackupData {
-    pub polyakov_loops: ArrayWrapper<u8>,
 }

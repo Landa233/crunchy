@@ -1,7 +1,7 @@
 use std::env;
 use std::fs;
 
-use z_n_gauge::sheduler::phase_diagram::phase_diagram_sweep::PhaseDiagram;
+use z_n_gauge::measurements::sheduler::PhaseDiagram;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

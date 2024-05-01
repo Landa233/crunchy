@@ -3,7 +3,11 @@
 use std::env;
 use std::fs;
 
-use z_n_gauge::sheduler::phase_diagram::phase_diagram_sweep::{phase_diagram_sweep, PhaseDiagram};
+use z_n_gauge::measurements::measurement_types::polyakov_loops::PolyakovBackup;
+use z_n_gauge::measurements::sheduler::phase_diagram_sweep;
+use z_n_gauge::measurements::sheduler::MesaurementType;
+use z_n_gauge::measurements::sheduler::PhaseDiagram;
+
 fn main() {
     let args: Vec<String> = env::args().collect();
 
@@ -24,5 +28,10 @@ fn main() {
 
     let phase_diagram: PhaseDiagram<3> = serde_json::from_str(&contents).unwrap();
 
-    phase_diagram_sweep(phase_diagram);
+    let measurement_type = phase_diagram.measurement_type;
+
+    match measurement_type {
+        MesaurementType::Polyakovloops => phase_diagram_sweep::<PolyakovBackup, 3>(phase_diagram),
+        // No Fall Through
+    }
 }
