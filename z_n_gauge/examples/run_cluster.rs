@@ -1,7 +1,7 @@
 use std::env;
 use std::fs;
 
-use z_n_gauge::sheduler::phase_diagram::phase_diagram_sweep::PhaseDiagram;
+use z_n_gauge::measurements::sheduler::ShedulerSettings;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -21,9 +21,11 @@ fn main() {
         }
     };
 
-    let phase_diagram: PhaseDiagram<3> = serde_json::from_str(&contents).unwrap();
+    let sheduler_settings: ShedulerSettings<3> = serde_json::from_str(&contents).unwrap();
 
-    phase_diagram.write_batch_file(file_name);
+    sheduler_settings.write_batch_file(file_name);
+
+    env::var("CRUNCHY_ROOT_DIRECTORY").expect("env variable CRUNCHY_ROOT_DIRECTORY not set");
 
     let command = "sbatch";
     let args = ["crunchy.sh"];

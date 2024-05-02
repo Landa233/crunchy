@@ -1,4 +1,8 @@
-workspace = { members = ["z_n_gauge"] }
+workspace = { members = [
+    "rs_to_npy",
+    "z_n_gauge",
+    "rs_to_npy/rs-to-npy-macros",
+] }
 [package]
 name = "crunchy"
 version = "0.1.0"

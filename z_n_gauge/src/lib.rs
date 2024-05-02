@@ -3,4 +3,5 @@
 
 pub mod experiment;
 pub mod gauge_fields;
+pub mod measurements;
 pub mod sheduler;
