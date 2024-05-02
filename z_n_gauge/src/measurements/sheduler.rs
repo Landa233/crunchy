@@ -28,8 +28,7 @@ pub struct ShedulerSettings<const ZORDER: usize> {
 
     pub lattice_shapes: LatticeShapes,
 
-    pub root_directory: String,
-
+    // pub root_directory: String,
     pub cluster_settings: ClusterSettings,
 
     pub measurement_type: MesaurementType,
@@ -38,6 +37,7 @@ pub struct ShedulerSettings<const ZORDER: usize> {
 #[derive(Clone, Serialize, Deserialize, Debug, Copy)]
 pub enum MesaurementType {
     Polyakovloops,
+    SaveEdges,
 }
 
 impl<const ZORDER: usize> ShedulerSettings<ZORDER> {
@@ -49,7 +49,7 @@ impl<const ZORDER: usize> ShedulerSettings<ZORDER> {
             ram,
             temporary_storage,
             email,
-            path_to_executable,
+            // path_to_executable,
             queue,
         } = self.cluster_settings.clone();
 
@@ -65,7 +65,7 @@ impl<const ZORDER: usize> ShedulerSettings<ZORDER> {
             #SBATCH --mail-type=ALL\n\
             #SBATCH -p {}\n\n\n\
             #Commands to be run:\n\
-            ./{} {}",
+            cargo run --manifest-path z_n_gauge/Cargo.toml --release --example run_sweep {}",
             number_of_threads,
             cluster_time.days,
             cluster_time.hours,
@@ -78,7 +78,7 @@ impl<const ZORDER: usize> ShedulerSettings<ZORDER> {
                 ClusterQueue::Test => "test",
                 ClusterQueue::Shared => "shared",
             },
-            path_to_executable,
+            // path_to_executable,
             config_file
         );
 
@@ -94,7 +94,7 @@ pub struct ClusterSettings {
     pub ram: usize,               // in GB
     pub temporary_storage: usize, // in GB
     pub email: String,
-    pub path_to_executable: String,
+    // pub path_to_executable: String,
     pub queue: ClusterQueue,
 }
 
@@ -181,7 +181,7 @@ pub fn phase_diagram_sweep<BackUpType: BackUp, const ZORDER: usize>(
         recording_skip,
         recordings_until_backup,
         lattice_shapes,
-        root_directory,
+        // root_directory,
         ..
     } = phase_diagram;
 
@@ -193,6 +193,10 @@ pub fn phase_diagram_sweep<BackUpType: BackUp, const ZORDER: usize>(
     let mut rng = rand::thread_rng();
 
     let folder_name = Local::now().format("%Y-%m-%d--%H-%M-%S").to_string();
+
+    use std::env;
+    let root_directory =
+        env::var("CRUNCHY_ROOT_DIRECTORY").expect("env variable CRUNCHY_ROOT_DIRECTORY not set");
 
     // Serialize phase_diagram_parameters to json
     let phase_diagram_parameters = serde_json::to_string_pretty(&phase_diagram_json).unwrap();

@@ -23,6 +23,7 @@ use rand::Rng;
 use rand::SeedableRng;
 use rand_pcg::Pcg64Mcg;
 
+// Dimensions of lattice are [x,y,z,t]
 #[derive(Clone)]
 pub struct Experiment<const ZORDER: usize> {
     pub sim: CubicalSimulation<4, ZNLatticeTypes<4, ZORDER>, ZNParameters<ZORDER>>,

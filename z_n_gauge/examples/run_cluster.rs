@@ -21,9 +21,11 @@ fn main() {
         }
     };
 
-    let phase_diagram: ShedulerSettings<3> = serde_json::from_str(&contents).unwrap();
+    let sheduler_settings: ShedulerSettings<3> = serde_json::from_str(&contents).unwrap();
 
-    phase_diagram.write_batch_file(file_name);
+    sheduler_settings.write_batch_file(file_name);
+
+    env::var("CRUNCHY_ROOT_DIRECTORY").expect("env variable CRUNCHY_ROOT_DIRECTORY not set");
 
     let command = "sbatch";
     let args = ["crunchy.sh"];

@@ -23,29 +23,29 @@ fn main() {
             seconds: 0,
         },
         ram: 50,
-        temporary_storage: 100,
+        temporary_storage: 1,
         email: "jhtb65@durham.ac.uk".to_string(),
-        path_to_executable: "target/release/examples/run_sweep".to_string(),
-        queue: ClusterQueue::Test,
+        // path_to_executable: "target/release/examples/run_sweep".to_string(),
+        queue: ClusterQueue::Shared,
     };
 
-    let phase_diagram = ShedulerSettings::<ZORDER> {
-        beta_range: Range::new([0.48, 0.52], 8),
+    let sheduler_settings = ShedulerSettings::<ZORDER> {
+        beta_range: Range::new([0.508, 0.508], 1),
         lambda_range: Range::new([1.0, 1.0], 1),
         experiments_per_point: 1,
-        number_of_threads: 8,
-        halting_condition: HaltingCondition::Recordings(5000),
+        number_of_threads: 4,
+        halting_condition: HaltingCondition::Recordings(20_000),
         recording_skip: 1,
-        recordings_until_backup: 1000,
-        lattice_shapes: LatticeShapes::Sweep(4..6),
+        recordings_until_backup: 5_000,
+        lattice_shapes: LatticeShapes::Sweep(8..13),
         // root_directory: "../../../nobackup/jhtb65/_recordings".to_string(),
-        root_directory: "_test".to_string(),
+        // root_directory: "_test".to_string(),
         cluster_settings,
-        measurement_type: MesaurementType::Polyakovloops,
+        measurement_type: MesaurementType::SaveEdges,
     };
 
     // // Serialize the phase_diagram to a json file
-    let json = serde_json::to_string(&phase_diagram).unwrap();
+    let json = serde_json::to_string(&sheduler_settings).unwrap();
 
     let mut config_path = std::path::PathBuf::new();
     config_path.push("configs");

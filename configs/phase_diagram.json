@@ -1,10 +1,10 @@
 {
     "beta_range": [
         [
-            0.48,
-            0.52
+            0.508,
+            0.508
         ],
-        8
+        1
     ],
     "lambda_range": [
         [
@@ -14,19 +14,18 @@
         1
     ],
     "experiments_per_point": 1,
-    "number_of_threads": 8,
+    "number_of_threads": 4,
     "halting_condition": {
-        "Recordings": 5000
+        "Recordings": 20000
     },
     "recording_skip": 1,
-    "recordings_until_backup": 1000,
+    "recordings_until_backup": 5000,
     "lattice_shapes": {
         "Sweep": {
-            "start": 4,
-            "end": 6
+            "start": 8,
+            "end": 13
         }
     },
-    "root_directory": "_test",
     "cluster_settings": {
         "cluster_time": {
             "days": 0,
@@ -35,10 +34,9 @@
             "seconds": 0
         },
         "ram": 50,
-        "temporary_storage": 100,
+        "temporary_storage": 1,
         "email": "jhtb65@durham.ac.uk",
-        "path_to_executable": "target/release/examples/run_sweep",
-        "queue": "Test"
+        "queue": "Shared"
     },
-    "measurement_type": "Polyakovloops"
+    "measurement_type": "SaveEdges"
 }
