@@ -7,7 +7,7 @@
 #SBATCH --gres=tmp:1G
 #SBATCH --mail-user=jhtb65@durham.ac.uk
 #SBATCH --mail-type=ALL
-#SBATCH -p test
+#SBATCH -p shared
 
 
 #Commands to be run:
