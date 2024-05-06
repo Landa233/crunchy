@@ -39,6 +39,7 @@ impl BackUp for SaveEdges {
     fn merge(mut backups: Vec<Self>) -> Self {
         let mut total_recordings = 0;
         let mut array_views = vec![];
+
         for backup in backups.iter() {
             total_recordings += backup.run_info.recordings;
             array_views.push(backup.edges.data.view());

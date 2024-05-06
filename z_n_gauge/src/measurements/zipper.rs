@@ -62,7 +62,6 @@ pub fn archive<BackUpType: BackUp, P: AsRef<Path> + std::fmt::Display>(run_path:
         }
 
         let mut zip = zip::ZipWriter::new(file);
-        let options = FileOptions::default().large_file(true);
 
         for backup_files in files_to_merge.iter() {
             let mut backups = vec![];
@@ -78,11 +77,14 @@ pub fn archive<BackUpType: BackUp, P: AsRef<Path> + std::fmt::Display>(run_path:
             counter += 1;
             println!("{:?}", counter);
 
+            let options = FileOptions::default().large_file(true);
             zip.start_file(
                 npz::file_name_from_array_name(&format!("{}", file_name)),
                 options,
             )
             .unwrap();
+
+            println!("{:?}", "writing");
 
             let mut writer = npyz::WriteOptions::new()
                 .dtype(merged_backup.generate_dtype())
@@ -92,8 +94,9 @@ pub fn archive<BackUpType: BackUp, P: AsRef<Path> + std::fmt::Display>(run_path:
                 .unwrap();
 
             writer.extend(vec![merged_backup]).unwrap();
-
             writer.finish().unwrap();
+
+            println!("{:?}", "written");
         }
         zip.finish().unwrap();
     }

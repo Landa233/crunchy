@@ -1,6 +1,12 @@
+use crunchy::crarray::ind::Ind;
 use crunchy::lattice::fields::Field;
 use crunchy::simulation::simulation::CubicalSimulation;
+use ndarray::arr1;
+
+use ndarray::s;
 use ndarray::Array;
+use ndarray::Dim;
+use ndarray::Ix1;
 use rs_to_npy::array_wrapper::ArrayWrapper;
 use std::ops::Deref;
 
@@ -214,4 +220,63 @@ impl<const ZORDER: usize> PartialEq for Experiment<ZORDER> {
 
         true
     }
+}
+
+fn calculate_distance_correlator(experiment: &Experiment<3>, d: usize) -> [f32; 2] {
+    let mut roots_of_unity = vec![];
+
+    let angle = 2.0 * std::f32::consts::PI / 3.0;
+    roots_of_unity.push(arr1(&[1.0, 0.0]));
+    roots_of_unity.push(arr1(&[angle.cos(), angle.sin()]));
+    roots_of_unity.push(arr1(&[angle.cos(), -angle.sin()]));
+
+    let mut counter = 0;
+    let mut total_correlator = [0.0, 0.0];
+
+    let mut ds = vec![];
+    for i in 0..4 {
+        let mut d_vec = [0; 4];
+        d_vec[i] = d;
+        ds.push(Ind::<4>::new(d_vec));
+    }
+
+    for d in ds {
+        for x in 0..experiment.sim.faces.shape()[1] {
+            for y in 0..experiment.sim.faces.shape()[2] {
+                for z in 0..experiment.sim.faces.shape()[3] {
+                    for t in 0..experiment.sim.faces.shape()[4] {
+                        let x = Ind::<4>::new([x, y, z, t]);
+                        let x_d = ((x + d) % *experiment.sim.shape).prepend(0);
+                        let x = x.prepend(0);
+
+                        let faces = &experiment.sim.faces;
+                        let pp_correlator =
+                            (3 + faces[*x].data.holonomy - faces[*x_d].data.holonomy) % 3;
+
+                        total_correlator[0] += roots_of_unity[pp_correlator][0];
+                        total_correlator[1] += roots_of_unity[pp_correlator][1];
+
+                        counter += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    total_correlator[0] /= counter as f32;
+    total_correlator[1] /= counter as f32;
+
+    total_correlator
+}
+
+pub fn calculate_correlators(experiment: &Experiment<3>) -> Vec<[f32; 2]> {
+    let l = experiment.sim.shape[0];
+
+    let mut correlators = vec![];
+    for d in 0..l {
+        correlators.push(calculate_distance_correlator(experiment, d));
+    }
+
+    return correlators;
+    // panic!()
 }

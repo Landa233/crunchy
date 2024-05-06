@@ -1,5 +1,40 @@
+import os
 import numpy as np
+import matplotlib.pyplot as plt
 
-data = np.load('_backup_fragments_test.npy')
+folder_name = "_recordings/Correlators_2024-05-02--16-56-11/correlators.npz"
 
-print(data.dtype)
+data = np.load(folder_name)
+
+# for key in data.keys():
+#     print(data["12"][0]["corr"].shape)
+
+
+# Sort the keys
+keys = list(data.keys())
+keys = [int(key) for key in keys]
+keys.sort()
+
+normaliser = 12
+fig = plt.figure()
+
+for key in keys:
+    if key == 8:
+        continue
+    correlators = data[str(key)][0]["corr"]
+    # average along axis 1
+    correlators = np.mean(correlators, axis=1)
+    real_part = correlators[:, 0]
+
+    Ls = np.arange(len(real_part))
+    Ls -= 1
+    max_L = np.max(Ls)
+
+    Ls = Ls / max_L
+    print(Ls)
+
+    plt.plot(Ls[1:], real_part[1:], '-o', label=f"L={key}")
+
+
+plt.legend()
+plt.show()

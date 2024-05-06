@@ -1,3 +1,5 @@
+use z_n_gauge::measurements::{measurement_types::save_edges::SaveEdges, zipper::archive};
+
 fn main() {
-    // archive("_recordings/CLUSTER-2024-04-23--08-17-20");
+    archive::<SaveEdges, _>("_recordings/Correlators_2024-05-02--16-56-11");
 }
