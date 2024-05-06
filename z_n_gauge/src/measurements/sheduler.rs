@@ -273,7 +273,7 @@ pub fn phase_diagram_sweep<BackUpType: BackUp, const ZORDER: usize>(
 
     println!("{}", "Completed all experiments");
 
-    archive::<BackUpType, _>(folder_path);
+    // archive::<BackUpType, _>(folder_path);
 }
 
 fn split_into_maximal_sublists<T: Clone>(list: Vec<T>, number_of_chunks: usize) -> Vec<Vec<T>> {
