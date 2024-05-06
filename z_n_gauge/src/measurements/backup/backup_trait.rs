@@ -19,11 +19,20 @@ pub trait BackUp: Sized + DTypeable + Serialize + Deserialize + Clone + PartialE
     where
         P: AsRef<Path>,
     {
-        let bytes = std::fs::read(file_path).unwrap();
+        let bytes = std::fs::read(&file_path).unwrap();
         let npy_file = npyz::NpyFile::new(&bytes[..]).unwrap();
 
-        let deserialized_backup: Vec<Self> = npy_file.into_vec().unwrap();
-        deserialized_backup.first().unwrap().clone()
+        let deserialized_backup: Result<Vec<Self>, io::Error> = npy_file.into_vec();
+
+        let res = match deserialized_backup {
+            Ok(deserialized_backup) => deserialized_backup.first().unwrap().clone(),
+            Err(_) => panic!(
+                "Error deserializing backup {}",
+                file_path.as_ref().display()
+            ),
+        };
+
+        res
     }
 
     fn write_to_file<P>(&self, file_path: P)

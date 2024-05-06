@@ -120,7 +120,7 @@ impl<T: Deserialize> TypeRead for ArrayWrapperReader<T> {
 
         let mut array_data = vec![];
         for _ in 0..ndim {
-            let a = type_reader.read_one(&mut b).unwrap();
+            let a = type_reader.read_one(&mut b)?;
             array_data.push(a);
         }
 

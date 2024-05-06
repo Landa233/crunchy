@@ -14,22 +14,22 @@
         1
     ],
     "experiments_per_point": 1,
-    "number_of_threads": 4,
+    "number_of_threads": 6,
     "halting_condition": {
-        "Recordings": 20000
+        "Recordings": 1000
     },
     "recording_skip": 1,
-    "recordings_until_backup": 5000,
+    "recordings_until_backup": 500,
     "lattice_shapes": {
         "Sweep": {
-            "start": 8,
-            "end": 13
+            "start": 13,
+            "end": 19
         }
     },
     "cluster_settings": {
         "cluster_time": {
             "days": 0,
-            "hours": 3,
+            "hours": 12,
             "minutes": 0,
             "seconds": 0
         },
