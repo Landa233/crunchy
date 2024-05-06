@@ -167,5 +167,5 @@ pub fn calc_correlators<P: AsRef<Path> + std::fmt::Display>(run_path: P) {
 fn main() {
     // attempt at calculating correlators
 
-    calc_correlators("_recordings/Correlators_2024-05-05--23-51-09");
+    calc_correlators(r"_test\2024-05-06--12-48-15");
 }

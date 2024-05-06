@@ -29,11 +29,11 @@
     "cluster_settings": {
         "cluster_time": {
             "days": 0,
-            "hours": 12,
+            "hours": 24,
             "minutes": 0,
             "seconds": 0
         },
-        "ram": 50,
+        "ram": 100,
         "temporary_storage": 1,
         "email": "jhtb65@durham.ac.uk",
         "queue": "Shared"
