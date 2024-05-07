@@ -1,4 +1,5 @@
 #![feature(generic_const_exprs)]
+#![allow(incomplete_features)]
 
 use std::{
     fs::{self, File},
@@ -6,15 +7,12 @@ use std::{
     thread,
 };
 
-use ndarray::{Array, Axis};
+use ndarray::Axis;
 use npyz::{npz, WriterBuilder};
 use rs_to_npy::{array_wrapper::ArrayWrapper, dtypeable::DTypeable};
 use rs_to_npy_macros::DTypeable;
 use z_n_gauge::{
-    experiment::{
-        self,
-        experiment::{calculate_correlators, Experiment},
-    },
+    experiment::experiment::{calculate_correlators, Experiment},
     measurements::{backup::backup_trait::BackUp, measurement_types::save_edges::SaveEdges},
 };
 use zip::write::FileOptions;
@@ -33,8 +31,8 @@ pub fn calc_correlators<P: AsRef<Path> + std::fmt::Display>(run_path: P) {
             }
         }
 
-        let name = format!("{}/{}", run_path, "archive.npz");
-        let file = File::create(name).unwrap();
+        // let name = format!("{}/{}", run_path, "archive.npz");
+        // let file = File::create(name).unwrap();
 
         let mut min_file_name = vec![];
         let mut files_to_merge = vec![];
@@ -70,35 +68,55 @@ pub fn calc_correlators<P: AsRef<Path> + std::fmt::Display>(run_path: P) {
             files.truncate(*min.unwrap() as usize);
         }
 
-        let mut zip = zip::ZipWriter::new(file);
+        // let mut zip = zip::ZipWriter::new(file);
 
         let mut handles = vec![];
 
+        let mut run_counter = 0;
         for backup_files in files_to_merge.into_iter() {
+            run_counter += 1;
             handles.push(thread::spawn(move || {
-                let mut backups = vec![];
-                for backup_file in backup_files {
-                    println!("{:?}", backup_file);
-                    let backup = SaveEdges::from_file(backup_file);
-                    backups.push(backup);
-                }
-
-                let merged_backup = SaveEdges::merge(backups);
-
+                // let mut backups = vec![];
                 let mut correlators = vec![];
 
-                for edge_config in merged_backup.edges.data.axis_iter(Axis(0)).take(5000) {
-                    // println!("{:?}", edge_config.shape());
+                for backup_file in backup_files.iter().take(5) {
+                    println!("{:?}", backup_file);
+                    let backup = SaveEdges::from_file(backup_file);
+                    // backups.push(backup);
 
-                    let mut reboot_seed = merged_backup.reboot_seed.clone();
-                    reboot_seed.last_state.edges = ArrayWrapper {
-                        data: edge_config.to_owned().clone(),
-                    };
+                    for (i, edge_config) in backup.edges.data.axis_iter(Axis(0)).enumerate() {
+                        let mut reboot_seed = backup.reboot_seed.clone();
+                        reboot_seed.last_state.edges = ArrayWrapper {
+                            data: edge_config.to_owned().clone(),
+                        };
 
-                    let experiment = Experiment::<3>::reboot_experiment(reboot_seed);
+                        let experiment = Experiment::<3>::reboot_experiment(reboot_seed);
 
-                    correlators.push(calculate_correlators(&experiment));
+                        let correlator = calculate_correlators(&experiment);
+                        correlators.push(correlator);
+
+                        println!("run_counter: {:?}, progress:{:?}", run_counter, i);
+                    }
                 }
+
+                // let merged_backup = SaveEdges::merge(backups);
+
+                // for (i, edge_config) in merged_backup.edges.data.axis_iter(Axis(0)).enumerate() {
+                //     // println!("{:?}", edge_config.shape());
+
+                //     if i % 1000 == 0 {
+                //         println!("run_id: {:?}, progress: {:?}", run_counter, i);
+                //     }
+
+                //     let mut reboot_seed = merged_backup.reboot_seed.clone();
+                //     reboot_seed.last_state.edges = ArrayWrapper {
+                //         data: edge_config.to_owned().clone(),
+                //     };
+
+                //     let experiment = Experiment::<3>::reboot_experiment(reboot_seed);
+
+                //     correlators.push(calculate_correlators(&experiment));
+                // }
 
                 let nrows = correlators.len();
                 let ncols = correlators[0].len();
@@ -167,5 +185,13 @@ pub fn calc_correlators<P: AsRef<Path> + std::fmt::Display>(run_path: P) {
 fn main() {
     // attempt at calculating correlators
 
-    calc_correlators(r"_test\2024-05-06--12-48-15");
+    // calc_correlators(r"_recordings/Correlators_2024-05-06--13-37-14");
+
+    // read dtype from npy file
+
+    let run_path = "_recordings/Correlators_big_2024-05-06--13-37-14";
+
+    calc_correlators(run_path);
+
+    // see how many bits are in file
 }

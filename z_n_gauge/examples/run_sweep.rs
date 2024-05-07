@@ -1,8 +1,10 @@
 #![feature(generic_const_exprs)]
 #![allow(incomplete_features)]
+#![feature(generic_arg_infer)]
 use std::env;
 use std::fs;
 
+use z_n_gauge::measurements::measurement_types::ploop_ploopcorr_corr::SavePloopPloopCorrCorr;
 use z_n_gauge::measurements::measurement_types::polyakov_loops::PolyakovBackup;
 use z_n_gauge::measurements::measurement_types::save_edges::SaveEdges;
 use z_n_gauge::measurements::sheduler::phase_diagram_sweep;
@@ -29,13 +31,20 @@ fn main() {
         }
     };
 
-    let phase_diagram: ShedulerSettings<3> = serde_json::from_str(&contents).unwrap();
+    const ZORDER: usize = 7;
+
+    let phase_diagram: ShedulerSettings<ZORDER> =
+        serde_json::from_str::<ShedulerSettings<7>>(&contents).unwrap();
 
     let measurement_type = phase_diagram.measurement_type;
 
     match measurement_type {
-        MesaurementType::Polyakovloops => phase_diagram_sweep::<PolyakovBackup, 3>(phase_diagram),
-        MesaurementType::SaveEdges => phase_diagram_sweep::<SaveEdges, 3>(phase_diagram),
-        // No Fall Through
+        MesaurementType::Polyakovloops => {
+            phase_diagram_sweep::<PolyakovBackup, ZORDER>(phase_diagram)
+        }
+        MesaurementType::SaveEdges => phase_diagram_sweep::<SaveEdges, ZORDER>(phase_diagram),
+        MesaurementType::PloopPloopCorrCorr => {
+            phase_diagram_sweep::<SavePloopPloopCorrCorr, ZORDER>(phase_diagram)
+        } // No Fall Through
     }
 }

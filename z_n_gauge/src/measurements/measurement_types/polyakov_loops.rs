@@ -6,7 +6,7 @@ use rs_to_npy::array_wrapper::ArrayWrapper;
 use rs_to_npy_macros::DTypeable;
 
 use crate::{
-    experiment::experiment::Experiment,
+    experiment::experiment::{record_polyakov_loops, Experiment},
     measurements::backup::{
         backup_fragments::{RebootSeed, RunInfo},
         backup_trait::{BackUp, ExecutorParameters, HaltingCondition},
@@ -95,7 +95,7 @@ impl BackUp for PolyakovBackup {
                 Array::from_shape_vec(rec_shape, zeros).unwrap().into_dyn();
 
             for i in 0..recordings {
-                record_experiment(&experiment, &mut polyakov_recordings, i as usize);
+                record_polyakov_loops(&experiment, &mut polyakov_recordings, i as usize);
                 for _ in 0..exec_par.recording_skip {
                     experiment.sweep();
                 }
@@ -127,28 +127,6 @@ impl BackUp for PolyakovBackup {
 
             recordings_counter += recordings;
             backup_number += 1;
-        }
-    }
-}
-
-pub fn record_experiment<const ZORDER: usize>(
-    experiment: &Experiment<ZORDER>,
-    rec_array: &mut Array<u8, IxDyn>,
-    rec_index: usize,
-) {
-    let [x_dim, y_dim, z_dim, t_dim] = *experiment.shape;
-
-    for x in 0..x_dim {
-        for y in 0..y_dim {
-            for z in 0..z_dim {
-                let mut singe_loop = 0;
-                for t in 0..t_dim {
-                    let a = experiment.sim.edges[[3, x, y, z, t]];
-                    singe_loop += a.data.phase;
-                }
-                singe_loop %= ZORDER as usize;
-                rec_array[[rec_index, x, y, z]] = singe_loop as u8;
-            }
         }
     }
 }

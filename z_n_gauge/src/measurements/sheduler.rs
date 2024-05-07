@@ -9,10 +9,7 @@ use crate::{
     gauge_fields::lattice::ZNParameters,
 };
 
-use super::{
-    backup::backup_trait::{BackUp, ExecutorParameters, HaltingCondition},
-    zipper::archive,
-};
+use super::backup::backup_trait::{BackUp, ExecutorParameters, HaltingCondition};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ShedulerSettings<const ZORDER: usize> {
@@ -38,6 +35,7 @@ pub struct ShedulerSettings<const ZORDER: usize> {
 pub enum MesaurementType {
     Polyakovloops,
     SaveEdges,
+    PloopPloopCorrCorr,
 }
 
 impl<const ZORDER: usize> ShedulerSettings<ZORDER> {
@@ -123,6 +121,7 @@ pub enum LatticeShapes {
     Single([usize; 4]),
     Custom(Vec<[usize; 4]>),
     Sweep(std::ops::Range<usize>),
+    Evens([usize; 2]),
 }
 
 impl From<LatticeShapes> for Vec<[usize; 4]> {
@@ -133,6 +132,16 @@ impl From<LatticeShapes> for Vec<[usize; 4]> {
             LatticeShapes::Sweep(range) => {
                 let mut shapes = vec![];
                 for i in range {
+                    shapes.push([i, i, i, i]);
+                }
+                shapes
+            }
+            LatticeShapes::Evens([start, end]) => {
+                if start % 2 != 0 || end % 2 != 0 {
+                    panic!("Start and end of the range must be even numbers");
+                }
+                let mut shapes = vec![];
+                for i in (start..=end).step_by(2) {
                     shapes.push([i, i, i, i]);
                 }
                 shapes

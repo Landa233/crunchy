@@ -33,8 +33,11 @@ for key in keys:
     Ls = Ls / max_L
     print(Ls)
 
-    plt.plot(Ls[1:], real_part[1:], '-o', label=f"L={key}")
+    plt.plot(Ls[2:-1], np.log(real_part[2:-1]), '-o', label=f"L={key}")
 
+
+# Turn off x axis numbers
+plt.gca().axes.get_xaxis().set_visible(False)
 
 plt.legend()
 plt.show()
