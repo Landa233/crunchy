@@ -10,7 +10,7 @@ use crate::{
     measurements::backup::backup_trait::{BackUp, HaltingCondition},
 };
 use chrono::{Duration, Utc};
-use ndarray::{Array, ArrayBase, IxDyn};
+use ndarray::{Array, ArrayBase, Axis, IxDyn};
 use rs_to_npy::array_wrapper::ArrayWrapper;
 use rs_to_npy_macros::DTypeable;
 
@@ -24,8 +24,8 @@ pub struct SavePloopPloopCorrCorr {
 #[derive(Debug, Clone, PartialEq, npyz::Serialize, npyz::Deserialize, DTypeable)]
 pub struct PloopCorrRecordings {
     pub polyakov_loops: ArrayWrapper<u8>,
-    pub polyakov_loop_correlators: ArrayWrapper<[f32; 2]>,
-    pub pp_correlators: ArrayWrapper<[f32; 2]>,
+    pub polyakov_loop_correlators: ArrayWrapper<f32>,
+    pub pp_correlators: ArrayWrapper<f32>,
 }
 
 impl BackUp for SavePloopPloopCorrCorr {
@@ -44,8 +44,49 @@ impl BackUp for SavePloopPloopCorrCorr {
         }
     }
 
-    fn merge(_backups: Vec<Self>) -> Self {
-        todo!()
+    fn merge(mut backups: Vec<Self>) -> Self {
+        let mut total_recordings = 0;
+        let mut polyakov_loops_views = vec![];
+        let mut polyakov_loop_correlators_views = vec![];
+        let mut pp_correlators_views = vec![];
+
+        for backup in backups.iter() {
+            total_recordings += backup.run_info.recordings;
+            // array_views.push(backup.polyakov_loops.polyakov_loops.data.view());
+            polyakov_loops_views.push(backup.ploop_corr_recordings.polyakov_loops.data.view());
+            polyakov_loop_correlators_views.push(
+                backup
+                    .ploop_corr_recordings
+                    .polyakov_loop_correlators
+                    .data
+                    .view(),
+            );
+            pp_correlators_views.push(backup.ploop_corr_recordings.pp_correlators.data.view());
+        }
+
+        // let merged_data = ndarray::concatenate(Axis(0), &array_views).unwrap();
+        let merged_polyakov_loops = ndarray::concatenate(Axis(0), &polyakov_loops_views).unwrap();
+        let merged_polyakov_loop_correlators =
+            ndarray::concatenate(Axis(0), &polyakov_loop_correlators_views).unwrap();
+        let merged_pp_correlators = ndarray::concatenate(Axis(0), &pp_correlators_views).unwrap();
+
+        let mut backup = backups.pop().unwrap();
+
+        backup.run_info.recordings = total_recordings;
+        backup.ploop_corr_recordings = PloopCorrRecordings {
+            polyakov_loops: ArrayWrapper {
+                data: merged_polyakov_loops,
+            },
+            polyakov_loop_correlators: ArrayWrapper {
+                data: merged_polyakov_loop_correlators,
+            },
+            pp_correlators: ArrayWrapper {
+                data: merged_pp_correlators,
+            },
+        };
+        backup.run_info.backup_number = 1;
+
+        backup
     }
 
     fn execute<const ZORDER: usize>(exec_par: ExecutorParameters, reboot_seed: RebootSeed) {
@@ -79,15 +120,16 @@ impl BackUp for SavePloopPloopCorrCorr {
             let mut polyakov_loops_recordings: Array<u8, IxDyn> =
                 ArrayBase::zeros((recordings as usize, shape[0], shape[1], shape[2])).into_dyn();
 
-            let corr_shape = (recordings as usize, l + 1);
-            let zeros = vec![[0.0; 2]; corr_shape.0 * corr_shape.1];
-            let mut polyakov_loops_correlators_recordings: Array<[f32; 2], IxDyn> =
-                Array::from_shape_vec(corr_shape, zeros.clone())
-                    .unwrap()
-                    .into_dyn();
+            let corr_shape = (recordings as usize, l + 1, 2);
+            // let zeros = vec![[0.0; 2]; corr_shape.0 * corr_shape.1 * 2];
+            let mut polyakov_loops_correlators_recordings: Array<f32, IxDyn> =
+                Array::zeros(corr_shape).into_dyn();
+            // Array::from_shape_vec(corr_shape, zeros.clone())
+            //     .unwrap()
+            //     .into_dyn();
 
-            let mut pp_correlators_recordings: Array<[f32; 2], IxDyn> =
-                Array::from_shape_vec(corr_shape, zeros).unwrap().into_dyn();
+            let mut pp_correlators_recordings: Array<f32, IxDyn> =
+                Array::zeros(corr_shape).into_dyn();
 
             for i in 0..recordings {
                 record_correlators(&experiment, &mut pp_correlators_recordings, i as usize);

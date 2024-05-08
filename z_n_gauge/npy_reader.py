@@ -15,7 +15,7 @@ keys = list(data.keys())
 keys = [int(key) for key in keys]
 keys.sort()
 
-normaliser = 12
+# normaliser = 12
 fig = plt.figure()
 
 for key in keys:
@@ -33,7 +33,7 @@ for key in keys:
     Ls = Ls / max_L
     print(Ls)
 
-    plt.plot(Ls[2:-1], np.log(real_part[2:-1]), '-o', label=f"L={key}")
+    plt.plot(Ls[1:], real_part[1:], '-o', label=f"L={key}")
 
 
 # Turn off x axis numbers

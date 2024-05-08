@@ -1,6 +1,7 @@
 /target
 /./data_analysis/temp
 *.npz
+*.npy
 *.pdf
 /myenv
 /_test

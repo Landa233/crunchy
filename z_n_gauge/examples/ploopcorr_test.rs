@@ -27,12 +27,10 @@ fn main() {
         experiment.sweep();
     }
 
-    let corr_shape = (recordings as usize, l + 1);
-    let zeros = vec![[0.0; 2]; corr_shape.0 * corr_shape.1];
-    let mut polyakov_loops_correlators_recordings: Array<[f32; 2], IxDyn> =
-        Array::from_shape_vec(corr_shape, zeros.clone())
-            .unwrap()
-            .into_dyn();
+    let corr_shape = (recordings as usize, l + 1, 2);
+
+    let mut polyakov_loops_correlators_recordings: Array<f32, IxDyn> =
+        Array::zeros(corr_shape).into_dyn();
 
     let mut polyakov_loops_recordings: Array<u8, IxDyn> =
         ArrayBase::zeros((recordings as usize, shape[0], shape[1], shape[2])).into_dyn();

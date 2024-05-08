@@ -1,5 +1,7 @@
-use z_n_gauge::measurements::{measurement_types::save_edges::SaveEdges, zipper::archive};
+use z_n_gauge::measurements::{
+    measurement_types::ploop_ploopcorr_corr::SavePloopPloopCorrCorr, zipper::archive,
+};
 
 fn main() {
-    archive::<SaveEdges, _>("_recordings/Correlators_2024-05-02--16-56-11");
+    archive::<SavePloopPloopCorrCorr, _>("_recordings/Z_7_all_measurements_2024-05-07--20-58-09");
 }

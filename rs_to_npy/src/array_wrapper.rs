@@ -114,6 +114,7 @@ impl<T: Deserialize> TypeRead for ArrayWrapperReader<T> {
         }
 
         let most_inner_dtype = dtype;
+
         let type_reader = <T as Deserialize>::reader(most_inner_dtype).unwrap();
 
         let ndim = shape.iter().fold(1, |acc, x| acc * x);

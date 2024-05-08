@@ -298,12 +298,13 @@ pub fn calculate_correlators<const ZORDER: usize>(
 
 pub fn record_correlators<const ZORDER: usize>(
     experiment: &Experiment<ZORDER>,
-    rec_array: &mut Array<[f32; 2], IxDyn>,
+    rec_array: &mut Array<f32, IxDyn>,
     rec_index: usize,
 ) {
     let correlators = calculate_correlators(experiment);
     for (i, correlator) in correlators.iter().enumerate() {
-        rec_array[[rec_index, i]] = *correlator;
+        rec_array[[rec_index, i, 0]] = correlator[0];
+        rec_array[[rec_index, i, 1]] = correlator[1];
     }
 }
 
@@ -331,15 +332,17 @@ pub fn record_polyakov_loops<const ZORDER: usize>(
 
 pub fn record_polyakov_correlators<const ZORDER: usize>(
     experiment: &Experiment<ZORDER>,
-    rec_array: &mut Array<[f32; 2], IxDyn>,
+    rec_array: &mut Array<f32, IxDyn>,
     polyakov_loops: &Array<u8, IxDyn>,
     rec_index: usize,
 ) {
     let l = experiment.sim.shape[0];
 
     for d in 0..=l {
-        rec_array[[rec_index, d]] =
+        let distance_corr =
             record_polyakov_correlators_distance(experiment, polyakov_loops, rec_index, d);
+        rec_array[[rec_index, d, 0]] = distance_corr[0];
+        rec_array[[rec_index, d, 1]] = distance_corr[1];
     }
 }
 
