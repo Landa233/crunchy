@@ -220,7 +220,7 @@ impl<const ZORDER: usize> PartialEq for Experiment<ZORDER> {
     }
 }
 
-fn generate_roots_of_unity<const ZORDER: usize>() -> [[f32; 2]; ZORDER] {
+pub fn generate_roots_of_unity<const ZORDER: usize>() -> [[f32; 2]; ZORDER] {
     let pi = std::f32::consts::PI;
     let mut res = [[0.0; 2]; ZORDER];
 
@@ -254,23 +254,29 @@ fn calculate_distance_correlator<const ZORDER: usize>(
         ds.push(Ind::<4>::new(d_vec));
     }
 
+    let faces_shape = experiment.sim.faces.shape();
+
     for d in ds {
-        for x in 0..experiment.sim.faces.shape()[1] {
-            for y in 0..experiment.sim.faces.shape()[2] {
-                for z in 0..experiment.sim.faces.shape()[3] {
-                    for t in 0..experiment.sim.faces.shape()[4] {
-                        let x = Ind::<4>::new([x, y, z, t]);
-                        let x_d = ((x + d) % *experiment.sim.shape).prepend(0);
-                        let x = x.prepend(0);
+        for plaquette_plan_index in 0..faces_shape[0] {
+            for x in 0..faces_shape[1] {
+                for y in 0..faces_shape[2] {
+                    for z in 0..faces_shape[3] {
+                        for t in 0..faces_shape[4] {
+                            let x = Ind::<4>::new([x, y, z, t]);
+                            let x_d =
+                                ((x + d) % *experiment.sim.shape).prepend(plaquette_plan_index);
+                            let x: Ind<5> = x.prepend(plaquette_plan_index);
 
-                        let faces = &experiment.sim.faces;
-                        let pp_correlator =
-                            (ZORDER + faces[*x].data.holonomy - faces[*x_d].data.holonomy) % ZORDER;
+                            let faces = &experiment.sim.faces;
+                            let pp_correlator = (ZORDER + faces[*x].data.holonomy
+                                - faces[*x_d].data.holonomy)
+                                % ZORDER;
 
-                        total_correlator[0] += roots_of_unity[pp_correlator][0];
-                        total_correlator[1] += roots_of_unity[pp_correlator][1];
+                            total_correlator[0] += roots_of_unity[pp_correlator][0];
+                            total_correlator[1] += roots_of_unity[pp_correlator][1];
 
-                        counter += 1;
+                            counter += 1;
+                        }
                     }
                 }
             }
