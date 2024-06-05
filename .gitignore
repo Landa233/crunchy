@@ -7,3 +7,4 @@
 /_test
 /_recordings
 rs_to_npy/target
+*.png

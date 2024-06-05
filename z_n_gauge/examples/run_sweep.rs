@@ -31,10 +31,10 @@ fn main() {
         }
     };
 
-    const ZORDER: usize = 7;
+    const ZORDER: usize = 3;
 
     let phase_diagram: ShedulerSettings<ZORDER> =
-        serde_json::from_str::<ShedulerSettings<7>>(&contents).unwrap();
+        serde_json::from_str::<ShedulerSettings<ZORDER>>(&contents).unwrap();
 
     let measurement_type = phase_diagram.measurement_type;
 

@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs::{self, File},
     path::Path,
 };
@@ -56,9 +57,61 @@ pub fn archive<BackUpType: BackUp, P: AsRef<Path> + std::fmt::Display>(run_path:
             }
         }
 
-        let min = min_file_name.iter().min();
+        // let min = min_file_name.iter().min();
+        // for files in files_to_merge.iter_mut() {
+        //     files.truncate(*min.unwrap() as usize);
+        // }
+
+        // Store length of files in hashmap indexed by lattice size
+        let mut lattice_sizes = HashMap::new();
+
+        fn get_lattice_size(file_name: &str) -> Vec<usize> {
+            let lattice_size = file_name
+                .split_once("L_")
+                .unwrap()
+                .1
+                .split_once("-")
+                .unwrap()
+                .0;
+            lattice_size
+                .split('_')
+                .map(|x| x.parse::<usize>().unwrap())
+                .collect::<Vec<usize>>()
+        }
+
+        for files in files_to_merge.iter() {
+            let first_file = files[0].clone();
+            let lattice_size = get_lattice_size(&first_file);
+
+            // check if key is already in hashmap
+            if lattice_sizes.contains_key(&lattice_size) {
+                // if key is in hashmap, increment value by 1
+                let value: &mut Vec<usize> = lattice_sizes.get_mut(&lattice_size).unwrap();
+                value.push(files.len());
+            } else {
+                // if key is not in hashmap, add key with value 1
+                lattice_sizes.insert(lattice_size, vec![files.len()]);
+            }
+        }
+
+        let mut truncation_map = HashMap::new();
+
+        for (key, value) in lattice_sizes.iter() {
+            let min = value.iter().min().unwrap();
+            truncation_map.insert(key, *min);
+        }
+
+        // truncate files
+
         for files in files_to_merge.iter_mut() {
-            files.truncate(*min.unwrap() as usize);
+            let first_file = files[0].clone();
+            let lattice_size = get_lattice_size(&first_file);
+            let truncation = truncation_map.get(&lattice_size).unwrap();
+            files.truncate(*truncation);
+        }
+
+        for file in files_to_merge.iter() {
+            println!("{:?}", file.len());
         }
 
         let mut zip = zip::ZipWriter::new(file);
@@ -66,6 +119,7 @@ pub fn archive<BackUpType: BackUp, P: AsRef<Path> + std::fmt::Display>(run_path:
         for backup_files in files_to_merge.iter() {
             let mut backups = vec![];
             for backup_file in backup_files {
+                println!("{:?}", backup_file);
                 let backup = BackUpType::from_file(backup_file);
                 backups.push(backup);
             }
