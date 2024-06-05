@@ -1,17 +1,10 @@
 use std::env;
 use std::fs;
 
-use z_n_gauge::measurements::sheduler::ShedulerSettings;
+use z_n_gauge::measurements::settings::ShedulerSettings;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() < 2 {
-        println!("Please provide a file name as a command line argument");
-        return;
-    }
-
-    let file_name = &args[1];
+    let file_name = "configs/sweep_settings.json";
 
     let contents = match fs::read_to_string(file_name) {
         Ok(contents) => contents,
@@ -21,7 +14,7 @@ fn main() {
         }
     };
 
-    let sheduler_settings: ShedulerSettings<3> = serde_json::from_str(&contents).unwrap();
+    let sheduler_settings: ShedulerSettings = serde_json::from_str(&contents).unwrap();
 
     sheduler_settings.write_batch_file(file_name);
 

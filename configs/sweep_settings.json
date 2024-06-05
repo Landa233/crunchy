@@ -19,13 +19,13 @@
         "Recordings": 10000
     },
     "recording_skip": 1,
-    "recordings_until_backup": 10000,
+    "recordings_until_backup": 1000,
     "lattice_shapes": {
         "Single": [
-            9,
-            9,
-            9,
-            9
+            3,
+            3,
+            3,
+            3
         ]
     },
     "cluster_settings": {
@@ -40,5 +40,6 @@
         "email": "jhtb65@durham.ac.uk",
         "queue": "Shared"
     },
-    "measurement_type": "PloopPloopCorrCorr"
+    "measurement_type": "PloopPloopCorrCorr",
+    "z_order": 7
 }
