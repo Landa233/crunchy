@@ -5,10 +5,8 @@ use crate::experiment::experiment::{
 };
 use crate::measurements::backup::backup_fragments::{RebootSeed, RunInfo};
 use crate::measurements::backup::backup_trait::ExecutorParameters;
-use crate::{
-    experiment::experiment::Experiment,
-    measurements::backup::backup_trait::{BackUp, HaltingCondition},
-};
+use crate::measurements::settings::HaltingCondition;
+use crate::{experiment::experiment::Experiment, measurements::backup::backup_trait::BackUp};
 use chrono::{Duration, Utc};
 use ndarray::{Array, ArrayBase, Axis, IxDyn};
 use rs_to_npy::array_wrapper::ArrayWrapper;
@@ -90,7 +88,12 @@ impl BackUp for SavePloopPloopCorrCorr {
     }
 
     fn execute<const ZORDER: usize>(exec_par: ExecutorParameters, reboot_seed: RebootSeed) {
-        assert!(ZORDER == reboot_seed.experiment_parameters.z_order as usize);
+        if ZORDER != reboot_seed.experiment_parameters.z_order as usize {
+            panic!(
+                "ZORDER mismatch: relaunch_zorder = {}, and reboot_seed.z_order = {}",
+                ZORDER, reboot_seed.experiment_parameters.z_order
+            );
+        }
         println!("{:?}", exec_par.run_id);
 
         fs::create_dir_all(&exec_par.parent_path).unwrap();
@@ -105,7 +108,7 @@ impl BackUp for SavePloopPloopCorrCorr {
         };
         let start_time = Utc::now();
 
-        let mut backup_number = 1;
+        let mut backup_number = exec_par.backup_number;
         let mut recordings_counter = 0;
 
         while recordings_counter < max_recordings && Utc::now() - start_time < duration {
@@ -121,12 +124,8 @@ impl BackUp for SavePloopPloopCorrCorr {
                 ArrayBase::zeros((recordings as usize, shape[0], shape[1], shape[2])).into_dyn();
 
             let corr_shape = (recordings as usize, l + 1, 2);
-            // let zeros = vec![[0.0; 2]; corr_shape.0 * corr_shape.1 * 2];
             let mut polyakov_loops_correlators_recordings: Array<f32, IxDyn> =
                 Array::zeros(corr_shape).into_dyn();
-            // Array::from_shape_vec(corr_shape, zeros.clone())
-            //     .unwrap()
-            //     .into_dyn();
 
             let mut pp_correlators_recordings: Array<f32, IxDyn> =
                 Array::zeros(corr_shape).into_dyn();
@@ -183,5 +182,13 @@ impl BackUp for SavePloopPloopCorrCorr {
             recordings_counter += recordings;
             backup_number += 1;
         }
+    }
+
+    fn reboot_seed(&self) -> RebootSeed {
+        self.reboot_seed.clone()
+    }
+
+    fn run_info(&self) -> RunInfo {
+        self.run_info
     }
 }

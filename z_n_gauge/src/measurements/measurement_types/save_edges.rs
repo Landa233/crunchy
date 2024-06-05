@@ -7,9 +7,12 @@ use rs_to_npy_macros::DTypeable;
 
 use crate::{
     experiment::experiment::Experiment,
-    measurements::backup::{
-        backup_fragments::{RebootSeed, RunInfo},
-        backup_trait::{BackUp, HaltingCondition},
+    measurements::{
+        backup::{
+            backup_fragments::{RebootSeed, RunInfo},
+            backup_trait::BackUp,
+        },
+        settings::HaltingCondition,
     },
 };
 
@@ -132,6 +135,14 @@ impl BackUp for SaveEdges {
             recordings_counter += recordings;
             backup_number += 1;
         }
+    }
+
+    fn reboot_seed(&self) -> RebootSeed {
+        self.reboot_seed.clone()
+    }
+
+    fn run_info(&self) -> RunInfo {
+        self.run_info
     }
 }
 

@@ -1,183 +1,24 @@
-use std::{fs::File, io::Write, num::NonZeroUsize};
+use std::{
+    fs::{self},
+    path::Path,
+};
 
 use chrono::prelude::*;
 use rand::Rng;
-use serde::{Deserialize, Serialize};
 
 use crate::{
     experiment::experiment::{generate_cosine, Experiment},
     gauge_fields::lattice::ZNParameters,
+    measurements::settings::{return_steps, HaltingCondition},
 };
 
-use super::backup::backup_trait::{BackUp, ExecutorParameters, HaltingCondition};
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct ShedulerSettings<const ZORDER: usize> {
-    pub beta_range: Range,
-    pub lambda_range: Range,
-
-    pub experiments_per_point: usize,
-
-    pub number_of_threads: usize,
-    pub halting_condition: HaltingCondition,
-    pub recording_skip: usize,
-    pub recordings_until_backup: usize,
-
-    pub lattice_shapes: LatticeShapes,
-
-    // pub root_directory: String,
-    pub cluster_settings: ClusterSettings,
-
-    pub measurement_type: MesaurementType,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, Copy)]
-pub enum MesaurementType {
-    Polyakovloops,
-    SaveEdges,
-    PloopPloopCorrCorr,
-}
-
-impl<const ZORDER: usize> ShedulerSettings<ZORDER> {
-    pub fn write_batch_file(&self, config_file: &str) {
-        let file_path = "crunchy.sh";
-
-        let ClusterSettings {
-            cluster_time,
-            ram,
-            temporary_storage,
-            email,
-            // path_to_executable,
-            queue,
-        } = self.cluster_settings.clone();
-
-        let number_of_threads = self.number_of_threads;
-
-        let content = format!(
-            "#!/bin/bash\n\n# Request resources:\n\
-            #SBATCH -c {}\n\
-            #SBATCH --time={}-{}:{}:{}\n\
-            #SBATCH --mem={}G\n\
-            #SBATCH --gres=tmp:{}G\n\
-            #SBATCH --mail-user={}\n\
-            #SBATCH --mail-type=ALL\n\
-            #SBATCH -p {}\n\n\n\
-            #Commands to be run:\n\
-            cargo run --manifest-path z_n_gauge/Cargo.toml --release --example run_sweep {}",
-            number_of_threads,
-            cluster_time.days,
-            cluster_time.hours,
-            cluster_time.minutes,
-            cluster_time.seconds,
-            ram,
-            temporary_storage,
-            email,
-            match queue {
-                ClusterQueue::Test => "test",
-                ClusterQueue::Shared => "shared",
-            },
-            // path_to_executable,
-            config_file
-        );
-
-        let mut file = File::create(file_path).unwrap();
-
-        file.write_all(content.as_bytes()).unwrap();
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct ClusterSettings {
-    pub cluster_time: ClusterTime,
-    pub ram: usize,               // in GB
-    pub temporary_storage: usize, // in GB
-    pub email: String,
-    // pub path_to_executable: String,
-    pub queue: ClusterQueue,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub enum ClusterQueue {
-    Test,
-    Shared,
-}
-
-impl Default for ClusterQueue {
-    fn default() -> Self {
-        ClusterQueue::Shared
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct ClusterTime {
-    pub days: u32,
-    pub hours: u32,
-    pub minutes: u32,
-    pub seconds: u32,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub enum LatticeShapes {
-    Single([usize; 4]),
-    Custom(Vec<[usize; 4]>),
-    Sweep(std::ops::Range<usize>),
-    Evens([usize; 2]),
-}
-
-impl From<LatticeShapes> for Vec<[usize; 4]> {
-    fn from(lattice_shape: LatticeShapes) -> Self {
-        match lattice_shape {
-            LatticeShapes::Single(shape) => vec![shape],
-            LatticeShapes::Custom(shapes) => shapes,
-            LatticeShapes::Sweep(range) => {
-                let mut shapes = vec![];
-                for i in range {
-                    shapes.push([i, i, i, i]);
-                }
-                shapes
-            }
-            LatticeShapes::Evens([start, end]) => {
-                if start % 2 != 0 || end % 2 != 0 {
-                    panic!("Start and end of the range must be even numbers");
-                }
-                let mut shapes = vec![];
-                for i in (start..=end).step_by(2) {
-                    shapes.push([i, i, i, i]);
-                }
-                shapes
-            }
-        }
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct Range(pub [f32; 2], pub NonZeroUsize);
-
-impl Range {
-    pub fn new(range: [f32; 2], steps: usize) -> Self {
-        Self(range, NonZeroUsize::new(steps).unwrap())
-    }
-}
-
-pub fn return_steps(range: Range) -> Vec<f32> {
-    match range {
-        Range([a, b], steps) => {
-            let steps = steps.get();
-            if steps == 1 {
-                return vec![a];
-            }
-
-            let delta = (b - a) / (steps - 1) as f32;
-            (0..steps)
-                .into_iter()
-                .map(|i| a + i as f32 * delta)
-                .collect::<Vec<f32>>()
-        }
-    }
-}
+use super::{
+    backup::backup_trait::{BackUp, ExecutorParameters},
+    settings::ShedulerSettings,
+};
 
 pub fn phase_diagram_sweep<BackUpType: BackUp, const ZORDER: usize>(
-    phase_diagram: ShedulerSettings<ZORDER>,
+    phase_diagram: ShedulerSettings,
 ) {
     let phase_diagram_json = phase_diagram.clone();
 
@@ -190,7 +31,6 @@ pub fn phase_diagram_sweep<BackUpType: BackUp, const ZORDER: usize>(
         recording_skip,
         recordings_until_backup,
         lattice_shapes,
-        // root_directory,
         ..
     } = phase_diagram;
 
@@ -254,6 +94,7 @@ pub fn phase_diagram_sweep<BackUpType: BackUp, const ZORDER: usize>(
                         recordings_until_backup: recordings_until_backup as u32,
                         run_id: run_id as u32,
                         parent_path: experiment_file_name,
+                        backup_number: 1,
                     };
 
                     experiments.push((executor_parameters, experiment.to_seed()));
@@ -308,4 +149,156 @@ fn split_into_maximal_sublists<T: Clone>(list: Vec<T>, number_of_chunks: usize) 
     }
 
     chunks
+}
+
+pub fn relaunch_experiments<P, const ZORDER: usize, BackUpType: BackUp>(
+    experiment_directory: P,
+    number_of_threads: usize,
+) where
+    P: AsRef<Path>,
+{
+    let (experiments_to_reboot, sheduler_settings) =
+        experiments_to_relaunch::<P>(experiment_directory);
+
+    let ShedulerSettings {
+        halting_condition,
+        recordings_until_backup,
+        ..
+    } = sheduler_settings;
+
+    let recordings_goal = match halting_condition {
+        HaltingCondition::Recordings(rec) => rec,
+        HaltingCondition::Time(_) => panic!("Halting condition must be recordings to relaunch"),
+    };
+
+    let mut experiments_to_execute = vec![];
+
+    for (file_name, max_backup_id) in experiments_to_reboot {
+        let last_backup_file = Path::new(&file_name).join(format!("{}.npy", max_backup_id));
+
+        // get backup from the last backup file
+        let backup = BackUpType::from_file(last_backup_file);
+
+        let reboot_seed = backup.reboot_seed();
+        let run_info = backup.run_info();
+
+        let recordings_to_go = recordings_goal - (max_backup_id * recordings_until_backup as u32);
+
+        let executor_parameters = ExecutorParameters {
+            halting_condition: HaltingCondition::Recordings(recordings_to_go),
+            recording_skip: sheduler_settings.recording_skip as u32,
+            recordings_until_backup: sheduler_settings.recordings_until_backup as u32,
+            run_id: run_info.run_id,
+            parent_path: file_name,
+            backup_number: max_backup_id + 1,
+        };
+
+        experiments_to_execute.push((executor_parameters, reboot_seed));
+    }
+
+    println!(
+        "Relaunching {} experiment(s).",
+        experiments_to_execute.len()
+    );
+
+    let experiments_per_thread =
+        split_into_maximal_sublists(experiments_to_execute, number_of_threads);
+
+    let mut threads = vec![];
+    experiments_per_thread.into_iter().for_each(|experiments| {
+        threads.push(std::thread::spawn(move || {
+            experiments
+                .into_iter()
+                .for_each(|(executor_parameters, reboot_seed)| {
+                    BackUpType::execute::<ZORDER>(executor_parameters, reboot_seed)
+                });
+        }));
+    });
+
+    threads.into_iter().for_each(|t| t.join().unwrap());
+
+    println!("{}", "Completed all experiments");
+}
+
+pub fn experiments_to_relaunch<P>(experiment_directory: P) -> (Vec<(String, u32)>, ShedulerSettings)
+where
+    P: AsRef<std::path::Path>,
+{
+    // Get all the experiment directories
+    let experiment_directories = std::fs::read_dir(&experiment_directory).unwrap();
+
+    let mut experiments = vec![];
+
+    // Iterate over the experiment directories
+    for experiment_directory in experiment_directories {
+        let experiment_directory = experiment_directory.unwrap().path();
+
+        // Check if the directory is a directory
+        if !experiment_directory.is_dir() {
+            continue;
+        }
+        experiments.push(experiment_directory);
+    }
+
+    let settings_file_name = experiment_directory
+        .as_ref()
+        .join("_phase_diagram_parameters.json");
+    let contents = match fs::read_to_string(settings_file_name) {
+        Ok(contents) => contents,
+        Err(err) => {
+            panic!("Error reading file: {}", err);
+        }
+    };
+
+    // Read the phase_diagram_parameters.json file
+    let phase_diagram: ShedulerSettings =
+        serde_json::from_str::<ShedulerSettings>(&contents).unwrap();
+
+    let recordings_goal = match phase_diagram.halting_condition {
+        HaltingCondition::Recordings(rec) => rec,
+        HaltingCondition::Time(_) => panic!("Halting condition must be recordings to relaunch"),
+    };
+
+    let recordings_until_backup = phase_diagram.recordings_until_backup;
+
+    let mut experiments_to_reboot = vec![];
+
+    // loop over the experiments and relaunch them
+    for experiment_directory in experiments {
+        // loop through files in the experiment directory
+        let experiment_files = std::fs::read_dir(&experiment_directory).unwrap();
+
+        let mut backup_files = vec![];
+
+        for experiment_file in experiment_files {
+            let experiment_file = experiment_file.unwrap().path();
+
+            if let Some(extension) = experiment_file.extension() {
+                if extension == "npy" {
+                    backup_files.push(experiment_file);
+                }
+            }
+        }
+
+        let mut max_backup_id = 0;
+        for backup_file in backup_files {
+            let file_name = backup_file.file_name().unwrap().to_str().unwrap();
+            let run_id = file_name.split('.').next().unwrap().parse::<u32>().unwrap();
+
+            if run_id > max_backup_id {
+                max_backup_id = run_id;
+            }
+        }
+
+        if (max_backup_id * recordings_until_backup as u32) >= recordings_goal {
+            continue;
+        };
+
+        experiments_to_reboot.push((
+            experiment_directory.to_str().unwrap().to_owned(),
+            max_backup_id,
+        ));
+    }
+
+    (experiments_to_reboot, phase_diagram)
 }

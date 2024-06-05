@@ -2,15 +2,10 @@
 #![allow(incomplete_features)]
 
 use serde_json;
-use z_n_gauge::measurements::backup::backup_trait::HaltingCondition;
-use z_n_gauge::measurements::sheduler::ClusterQueue;
-use z_n_gauge::measurements::sheduler::ClusterSettings;
-use z_n_gauge::measurements::sheduler::ClusterTime;
-use z_n_gauge::measurements::sheduler::LatticeShapes;
-use z_n_gauge::measurements::sheduler::MesaurementType;
-
-use z_n_gauge::measurements::sheduler::Range;
-use z_n_gauge::measurements::sheduler::ShedulerSettings;
+use z_n_gauge::measurements::settings::{
+    ClusterQueue, ClusterSettings, ClusterTime, HaltingCondition, LatticeShapes, MesaurementType,
+    Range, ShedulerSettings,
+};
 
 fn main() {
     const ZORDER: usize = 3;
@@ -29,7 +24,7 @@ fn main() {
         queue: ClusterQueue::Shared,
     };
 
-    let sheduler_settings = ShedulerSettings::<ZORDER> {
+    let sheduler_settings = ShedulerSettings {
         beta_range: Range::new([0.508, 0.508], 1),
         lambda_range: Range::new([1.0, 1.0], 1),
         experiments_per_point: 1,
@@ -42,6 +37,7 @@ fn main() {
         // root_directory: "_test".to_string(),
         cluster_settings,
         measurement_type: MesaurementType::SaveEdges,
+        z_order: ZORDER,
     };
 
     // // Serialize the phase_diagram to a json file
@@ -58,7 +54,7 @@ fn main() {
     // Deserialize the phase_diagram from the json file
 
     let json = std::fs::read_to_string("configs/phase_diagram.json").unwrap();
-    let _phase_diagram: ShedulerSettings<ZORDER> = serde_json::from_str(&json).unwrap();
+    let _phase_diagram: ShedulerSettings = serde_json::from_str(&json).unwrap();
 
     // phase_diagram_sweep(phase_diagram);
 

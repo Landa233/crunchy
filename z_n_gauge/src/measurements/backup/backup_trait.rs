@@ -1,10 +1,13 @@
-use std::{fmt::Debug, fs, io, ops::Deref, path::Path};
+use std::{fs, io, path::Path};
 
-use chrono::Duration;
 use npyz::{Deserialize, Serialize, WriterBuilder};
 use rs_to_npy::dtypeable::DTypeable;
 
-use super::backup_fragments::RebootSeed;
+use crate::measurements::settings::HaltingCondition;
+
+use super::backup_fragments::{RebootSeed, RunInfo};
+
+use core::fmt::Debug;
 
 pub trait BackUp: Sized + DTypeable + Serialize + Deserialize + Clone + PartialEq + Debug {
     type BackupData<'a, const ZORDER: usize>;
@@ -49,6 +52,9 @@ pub trait BackUp: Sized + DTypeable + Serialize + Deserialize + Clone + PartialE
         writer.push(self).unwrap();
         writer.finish().unwrap();
     }
+
+    fn reboot_seed(&self) -> RebootSeed;
+    fn run_info(&self) -> RunInfo;
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
@@ -58,40 +64,5 @@ pub struct ExecutorParameters {
     pub recordings_until_backup: u32,
     pub run_id: u32,
     pub parent_path: String,
-}
-
-#[derive(Clone, Copy, serde::Serialize, serde::Deserialize, Debug)]
-pub enum HaltingCondition {
-    Recordings(u32),
-    Time(DurationWrapper),
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct DurationWrapper(pub Duration);
-
-impl serde::Serialize for DurationWrapper {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_i64(self.0.num_seconds())
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for DurationWrapper {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let seconds = i64::deserialize(deserializer)?;
-        Ok(Self(Duration::seconds(seconds)))
-    }
-}
-
-impl Deref for DurationWrapper {
-    type Target = Duration;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
+    pub backup_number: u32,
 }
