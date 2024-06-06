@@ -2796,7 +2796,16 @@ dependencies = [
 name = "z_n_gauge_visualizations"
 version = "0.1.0"
 dependencies = [
+ "bytemuck",
+ "crunchy",
+ "instant",
  "iris",
+ "pollster",
+ "rand",
+ "rand_core",
+ "rand_pcg",
+ "wgpu",
+ "winit",
  "z_n_gauge",
 ]
 
