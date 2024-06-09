@@ -1,7 +1,8 @@
 use std::fs;
 
 use crate::experiment::experiment::{
-    record_correlators, record_polyakov_correlators, record_polyakov_loops,
+    record_average_plaquette, record_correlators, record_polyakov_correlators,
+    record_polyakov_loops,
 };
 use crate::measurements::backup::backup_fragments::{RebootSeed, RunInfo};
 use crate::measurements::backup::backup_trait::ExecutorParameters;
@@ -24,6 +25,7 @@ pub struct PloopCorrRecordings {
     pub polyakov_loops: ArrayWrapper<u8>,
     pub polyakov_loop_correlators: ArrayWrapper<f32>,
     pub pp_correlators: ArrayWrapper<f32>,
+    pub average_plaquette: ArrayWrapper<f32>,
 }
 
 impl BackUp for SavePloopPloopCorrCorr {
@@ -47,6 +49,7 @@ impl BackUp for SavePloopPloopCorrCorr {
         let mut polyakov_loops_views = vec![];
         let mut polyakov_loop_correlators_views = vec![];
         let mut pp_correlators_views = vec![];
+        let mut average_plaquette_views = vec![];
 
         for backup in backups.iter() {
             total_recordings += backup.run_info.recordings;
@@ -60,6 +63,8 @@ impl BackUp for SavePloopPloopCorrCorr {
                     .view(),
             );
             pp_correlators_views.push(backup.ploop_corr_recordings.pp_correlators.data.view());
+            average_plaquette_views
+                .push(backup.ploop_corr_recordings.average_plaquette.data.view());
         }
 
         // let merged_data = ndarray::concatenate(Axis(0), &array_views).unwrap();
@@ -67,6 +72,8 @@ impl BackUp for SavePloopPloopCorrCorr {
         let merged_polyakov_loop_correlators =
             ndarray::concatenate(Axis(0), &polyakov_loop_correlators_views).unwrap();
         let merged_pp_correlators = ndarray::concatenate(Axis(0), &pp_correlators_views).unwrap();
+        let merged_average_plaquette =
+            ndarray::concatenate(Axis(0), &average_plaquette_views).unwrap();
 
         let mut backup = backups.pop().unwrap();
 
@@ -80,6 +87,9 @@ impl BackUp for SavePloopPloopCorrCorr {
             },
             pp_correlators: ArrayWrapper {
                 data: merged_pp_correlators,
+            },
+            average_plaquette: ArrayWrapper {
+                data: merged_average_plaquette,
             },
         };
         backup.run_info.backup_number = 1;
@@ -130,8 +140,17 @@ impl BackUp for SavePloopPloopCorrCorr {
             let mut pp_correlators_recordings: Array<f32, IxDyn> =
                 Array::zeros(corr_shape).into_dyn();
 
+            let mut average_plaquette_recordings: Array<f32, IxDyn> =
+                Array::zeros((recordings as usize, 2)).into_dyn();
+
             for i in 0..recordings {
                 record_correlators(&experiment, &mut pp_correlators_recordings, i as usize);
+
+                record_average_plaquette(
+                    &experiment,
+                    &mut average_plaquette_recordings,
+                    i as usize,
+                );
 
                 // The order of the following function matters
                 record_polyakov_loops(&experiment, &mut polyakov_loops_recordings, i as usize);
@@ -170,6 +189,9 @@ impl BackUp for SavePloopPloopCorrCorr {
                     },
                     pp_correlators: ArrayWrapper {
                         data: pp_correlators_recordings,
+                    },
+                    average_plaquette: ArrayWrapper {
+                        data: average_plaquette_recordings,
                     },
                 },
                 run_info,

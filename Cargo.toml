@@ -1,7 +1,7 @@
 workspace = { members = [
     "rs_to_npy",
     "z_n_gauge",
-    "rs_to_npy/rs-to-npy-macros",
+    "rs_to_npy/rs-to-npy-macros", "z_n_gauge_visualizations",
 ] }
 [package]
 name = "crunchy"

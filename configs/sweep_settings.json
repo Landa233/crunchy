@@ -4,7 +4,7 @@
             0.01,
             1.0
         ],
-        24
+        8
     ],
     "lambda_range": [
         [
@@ -16,10 +16,10 @@
     "experiments_per_point": 1,
     "number_of_threads": 8,
     "halting_condition": {
-        "Recordings": 10000
+        "Recordings": 5000
     },
     "recording_skip": 1,
-    "recordings_until_backup": 1000,
+    "recordings_until_backup": 5000,
     "lattice_shapes": {
         "Single": [
             3,
