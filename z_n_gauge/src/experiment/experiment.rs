@@ -400,3 +400,28 @@ pub fn record_polyakov_correlators_distance<const ZORDER: usize>(
 
     total_correlator
 }
+
+pub fn record_average_plaquette<const ZORDER: usize>(
+    experiment: &Experiment<ZORDER>,
+    rec_array: &mut Array<f32, IxDyn>,
+    rec_index: usize,
+) {
+    let roots_of_unity = generate_roots_of_unity::<ZORDER>();
+
+    let mut total_plaquette = [0.0, 0.0];
+
+    let mut counter = 0;
+    for p in experiment.sim.faces.iter() {
+        let root = roots_of_unity[p.data.holonomy];
+        total_plaquette[0] += root[0];
+        total_plaquette[1] += root[1];
+
+        counter += 1;
+    }
+
+    total_plaquette[0] /= counter as f32;
+    total_plaquette[1] /= counter as f32;
+
+    rec_array[[rec_index, 0]] = total_plaquette[0];
+    rec_array[[rec_index, 1]] = total_plaquette[1];
+}

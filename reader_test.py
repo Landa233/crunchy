@@ -10,7 +10,7 @@ import numpy as np
 # print(np.linspace(0.5, 3.0, 8))
 
 data = np.load(
-    "_recordings/Z_7_all_measurements/1-L_6_6_6_6-b_0p50-l_0p00/1.npy")
+    "_test/2024-06-09--11-35-24/8-L_3_3_3_3-b_1p00-l_1p00/1.npy")
 
 
 print(data['ploop_corr_recordings'].dtype)
