@@ -3,5 +3,5 @@ use z_n_gauge::measurements::{
 };
 
 fn main() {
-    archive::<SavePloopPloopCorrCorr, _>("_recordings/Z_7-STATISTICAL-2024-05-19--13-54-15");
+    archive::<SavePloopPloopCorrCorr, _>("_recordings/2024-06-09--11-45-43-Z_7-with-<P>^2");
 }

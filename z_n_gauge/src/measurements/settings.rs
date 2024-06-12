@@ -1,6 +1,6 @@
 use chrono::Duration;
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Write, num::NonZeroUsize, ops::Deref};
+use std::{fmt, fs::File, io::Write, num::NonZeroUsize, ops::Deref};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ShedulerSettings {
@@ -27,6 +27,16 @@ pub struct ShedulerSettings {
 pub enum HaltingCondition {
     Recordings(u32),
     Time(DurationWrapper),
+}
+
+// impl Display for HaltingCondition
+impl fmt::Display for HaltingCondition {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            HaltingCondition::Recordings(recordings) => write!(f, "Recordings: {}", recordings),
+            HaltingCondition::Time(time) => write!(f, "Time: {}", time.0),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]

@@ -201,6 +201,15 @@ pub fn relaunch_experiments<P, const ZORDER: usize, BackUpType: BackUp>(
         experiments_to_execute.len()
     );
 
+    for (executor_parameters, _) in &experiments_to_execute {
+        println!(
+            "Launching: {}, with {} left to go, starting from backup {}.",
+            executor_parameters.parent_path,
+            executor_parameters.halting_condition,
+            executor_parameters.backup_number
+        );
+    }
+
     let experiments_per_thread =
         split_into_maximal_sublists(experiments_to_execute, number_of_threads);
 
