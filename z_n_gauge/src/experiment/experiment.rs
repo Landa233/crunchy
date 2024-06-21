@@ -7,6 +7,7 @@ use ndarray::Array;
 use ndarray::IxDyn;
 use rs_to_npy::array_wrapper::ArrayWrapper;
 use std::ops::Deref;
+use std::ops::DerefMut;
 
 use crate::gauge_fields::cubes::MonopoleField;
 use crate::gauge_fields::edges::EdgeField;
@@ -185,6 +186,12 @@ impl<const ZORDER: usize> Deref for Experiment<ZORDER> {
     }
 }
 
+impl<const ZORDER: usize> DerefMut for Experiment<ZORDER> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.sim
+    }
+}
+
 impl<const ZORDER: usize> PartialEq for Experiment<ZORDER> {
     fn eq(&self, other: &Self) -> bool {
         if self.rng_gen != other.rng_gen {
@@ -238,7 +245,7 @@ pub fn generate_roots_of_unity<const ZORDER: usize>() -> [[f32; 2]; ZORDER] {
     res
 }
 
-fn calculate_distance_correlator<const ZORDER: usize>(
+pub fn calculate_distance_correlator<const ZORDER: usize>(
     experiment: &Experiment<ZORDER>,
     d: usize,
 ) -> [f32; 2] {
@@ -401,11 +408,7 @@ pub fn record_polyakov_correlators_distance<const ZORDER: usize>(
     total_correlator
 }
 
-pub fn record_average_plaquette<const ZORDER: usize>(
-    experiment: &Experiment<ZORDER>,
-    rec_array: &mut Array<f32, IxDyn>,
-    rec_index: usize,
-) {
+pub fn measure_average_plaquette<const ZORDER: usize>(experiment: &Experiment<ZORDER>) -> [f32; 2] {
     let roots_of_unity = generate_roots_of_unity::<ZORDER>();
 
     let mut total_plaquette = [0.0, 0.0];
@@ -421,6 +424,16 @@ pub fn record_average_plaquette<const ZORDER: usize>(
 
     total_plaquette[0] /= counter as f32;
     total_plaquette[1] /= counter as f32;
+
+    total_plaquette
+}
+
+pub fn record_average_plaquette<const ZORDER: usize>(
+    experiment: &Experiment<ZORDER>,
+    rec_array: &mut Array<f32, IxDyn>,
+    rec_index: usize,
+) {
+    let total_plaquette = measure_average_plaquette(experiment);
 
     rec_array[[rec_index, 0]] = total_plaquette[0];
     rec_array[[rec_index, 1]] = total_plaquette[1];
