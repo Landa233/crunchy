@@ -248,7 +248,7 @@ pub fn generate_roots_of_unity<const ZORDER: usize>() -> [[f32; 2]; ZORDER] {
 pub fn calculate_distance_correlator<const ZORDER: usize>(
     experiment: &Experiment<ZORDER>,
     d: usize,
-) -> [f32; 2] {
+) -> ([f32; 2], [u64; ZORDER]) {
     let roots_of_unity = generate_roots_of_unity::<ZORDER>();
 
     let mut counter = 0;
@@ -262,6 +262,8 @@ pub fn calculate_distance_correlator<const ZORDER: usize>(
     }
 
     let faces_shape = experiment.sim.faces.shape();
+
+    let mut correlator_differences: [u64; ZORDER] = [0; ZORDER];
 
     for d in ds {
         for plaquette_plan_index in 0..faces_shape[0] {
@@ -282,6 +284,8 @@ pub fn calculate_distance_correlator<const ZORDER: usize>(
                             total_correlator[0] += roots_of_unity[pp_correlator][0];
                             total_correlator[1] += roots_of_unity[pp_correlator][1];
 
+                            correlator_differences[pp_correlator] += 1;
+
                             counter += 1;
                         }
                     }
@@ -293,31 +297,38 @@ pub fn calculate_distance_correlator<const ZORDER: usize>(
     total_correlator[0] /= counter as f32;
     total_correlator[1] /= counter as f32;
 
-    total_correlator
+    (total_correlator, correlator_differences)
 }
 
 pub fn calculate_correlators<const ZORDER: usize>(
     experiment: &Experiment<ZORDER>,
-) -> Vec<[f32; 2]> {
+) -> Vec<([f32; 2], [u64; ZORDER])> {
     let l = experiment.sim.shape[0];
 
-    let mut correlators = vec![];
+    let mut correlators_and_differences = vec![];
     for d in 0..=l {
-        correlators.push(calculate_distance_correlator(experiment, d));
+        correlators_and_differences.push(calculate_distance_correlator(experiment, d));
     }
 
-    return correlators;
+    return correlators_and_differences;
 }
 
 pub fn record_correlators<const ZORDER: usize>(
     experiment: &Experiment<ZORDER>,
     rec_array: &mut Array<f32, IxDyn>,
+    rec_array_differences: &mut Array<u64, IxDyn>,
     rec_index: usize,
 ) {
-    let correlators = calculate_correlators(experiment);
-    for (i, correlator) in correlators.iter().enumerate() {
+    let correlators_and_differences = calculate_correlators(experiment);
+    for (i, correlator_plus_difference) in correlators_and_differences.iter().enumerate() {
+        let (correlator, correlator_differences) = correlator_plus_difference;
+
         rec_array[[rec_index, i, 0]] = correlator[0];
         rec_array[[rec_index, i, 1]] = correlator[1];
+
+        for j in 0..ZORDER {
+            rec_array_differences[[rec_index, i, j]] = correlator_differences[j];
+        }
     }
 }
 

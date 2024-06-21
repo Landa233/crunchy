@@ -168,11 +168,13 @@ fn main() {
 
     println!("\nd=1 Debug Correlator: {:?}", debug_correlator);
 
-    let correlator = calculate_distance_correlator(&experiment, 1);
+    let (correlator, correlator_differences) = calculate_distance_correlator(&experiment, 1);
     println!("Correlator: {:?}", correlator);
 
     let average_plaquette = measure_average_plaquette(&experiment);
     println!("Average Plaquette: {:?}\n", average_plaquette);
+
+    println!("Correlator Differences: {:?}", correlator_differences);
 
     println!(
         "{:?}",
