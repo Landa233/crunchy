@@ -27,6 +27,7 @@ pub struct PloopCorrRecordings {
     pub pp_correlators: ArrayWrapper<f32>,
     pub average_plaquette: ArrayWrapper<f32>,
     pub pp_correlators_differences: ArrayWrapper<u64>,
+    pub average_plaquette_integer: ArrayWrapper<u64>,
 }
 
 impl BackUp for SavePloopPloopCorrCorr {
@@ -52,6 +53,7 @@ impl BackUp for SavePloopPloopCorrCorr {
         let mut pp_correlators_views = vec![];
         let mut average_plaquette_views = vec![];
         let mut pp_correlators_differences_views = vec![];
+        let mut average_plaquette_integer_views = vec![];
 
         for backup in backups.iter() {
             total_recordings += backup.run_info.recordings;
@@ -74,6 +76,13 @@ impl BackUp for SavePloopPloopCorrCorr {
                     .data
                     .view(),
             );
+            average_plaquette_integer_views.push(
+                backup
+                    .ploop_corr_recordings
+                    .average_plaquette_integer
+                    .data
+                    .view(),
+            );
         }
 
         // let merged_data = ndarray::concatenate(Axis(0), &array_views).unwrap();
@@ -85,6 +94,8 @@ impl BackUp for SavePloopPloopCorrCorr {
             ndarray::concatenate(Axis(0), &average_plaquette_views).unwrap();
         let merged_pp_correlators_differences =
             ndarray::concatenate(Axis(0), &pp_correlators_differences_views).unwrap();
+        let merged_average_plaquette_integer =
+            ndarray::concatenate(Axis(0), &average_plaquette_integer_views).unwrap();
 
         let mut backup = backups.pop().unwrap();
 
@@ -104,6 +115,9 @@ impl BackUp for SavePloopPloopCorrCorr {
             },
             pp_correlators_differences: ArrayWrapper {
                 data: merged_pp_correlators_differences,
+            },
+            average_plaquette_integer: ArrayWrapper {
+                data: merged_average_plaquette_integer,
             },
         };
         backup.run_info.backup_number = 1;
@@ -161,6 +175,10 @@ impl BackUp for SavePloopPloopCorrCorr {
             let mut pp_correlators_differences: Array<u64, IxDyn> =
                 Array::zeros(corr_differences_shape).into_dyn();
 
+            let average_integer_plaquette_shape = (recordings as usize, ZORDER);
+            let mut average_plaquette_integer: Array<u64, IxDyn> =
+                Array::zeros(average_integer_plaquette_shape).into_dyn();
+
             for i in 0..recordings {
                 record_correlators(
                     &experiment,
@@ -172,6 +190,7 @@ impl BackUp for SavePloopPloopCorrCorr {
                 record_average_plaquette(
                     &experiment,
                     &mut average_plaquette_recordings,
+                    &mut average_plaquette_integer,
                     i as usize,
                 );
 
@@ -218,6 +237,9 @@ impl BackUp for SavePloopPloopCorrCorr {
                     },
                     pp_correlators_differences: ArrayWrapper {
                         data: pp_correlators_differences,
+                    },
+                    average_plaquette_integer: ArrayWrapper {
+                        data: average_plaquette_integer,
                     },
                 },
                 run_info,

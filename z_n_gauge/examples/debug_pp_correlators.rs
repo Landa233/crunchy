@@ -171,7 +171,7 @@ fn main() {
     let (correlator, correlator_differences) = calculate_distance_correlator(&experiment, 1);
     println!("Correlator: {:?}", correlator);
 
-    let average_plaquette = measure_average_plaquette(&experiment);
+    let average_plaquette = measure_average_plaquette(&experiment).0;
     println!("Average Plaquette: {:?}\n", average_plaquette);
 
     println!("Correlator Differences: {:?}", correlator_differences);

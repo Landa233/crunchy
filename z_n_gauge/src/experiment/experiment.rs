@@ -419,10 +419,13 @@ pub fn record_polyakov_correlators_distance<const ZORDER: usize>(
     total_correlator
 }
 
-pub fn measure_average_plaquette<const ZORDER: usize>(experiment: &Experiment<ZORDER>) -> [f32; 2] {
+pub fn measure_average_plaquette<const ZORDER: usize>(
+    experiment: &Experiment<ZORDER>,
+) -> ([f32; 2], [u64; ZORDER]) {
     let roots_of_unity = generate_roots_of_unity::<ZORDER>();
 
     let mut total_plaquette = [0.0, 0.0];
+    let mut total_integer_plaquette = [0; ZORDER];
 
     let mut counter = 0;
     for p in experiment.sim.faces.iter() {
@@ -430,21 +433,28 @@ pub fn measure_average_plaquette<const ZORDER: usize>(experiment: &Experiment<ZO
         total_plaquette[0] += root[0];
         total_plaquette[1] += root[1];
 
+        total_integer_plaquette[p.data.holonomy] += 1;
+
         counter += 1;
     }
 
     total_plaquette[0] /= counter as f32;
     total_plaquette[1] /= counter as f32;
 
-    total_plaquette
+    (total_plaquette, total_integer_plaquette)
 }
 
 pub fn record_average_plaquette<const ZORDER: usize>(
     experiment: &Experiment<ZORDER>,
     rec_array: &mut Array<f32, IxDyn>,
+    rec_integer_array: &mut Array<u64, IxDyn>,
     rec_index: usize,
 ) {
-    let total_plaquette = measure_average_plaquette(experiment);
+    let (total_plaquette, total_integer_plaquette) = measure_average_plaquette(experiment);
+
+    for i in 0..ZORDER {
+        rec_integer_array[[rec_index, i]] = total_integer_plaquette[i];
+    }
 
     rec_array[[rec_index, 0]] = total_plaquette[0];
     rec_array[[rec_index, 1]] = total_plaquette[1];
