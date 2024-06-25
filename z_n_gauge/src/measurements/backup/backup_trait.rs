@@ -29,9 +29,10 @@ pub trait BackUp: Sized + DTypeable + Serialize + Deserialize + Clone + PartialE
 
         let res = match deserialized_backup {
             Ok(deserialized_backup) => deserialized_backup.first().unwrap().clone(),
-            Err(_) => panic!(
-                "Error deserializing backup {}",
-                file_path.as_ref().display()
+            Err(err) => panic!(
+                "Error deserializing backup {}\n Error: {}",
+                file_path.as_ref().display(),
+                err
             ),
         };
 
