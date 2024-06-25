@@ -459,3 +459,103 @@ pub fn record_average_plaquette<const ZORDER: usize>(
     rec_array[[rec_index, 0]] = total_plaquette[0];
     rec_array[[rec_index, 1]] = total_plaquette[1];
 }
+
+#[derive(Debug)]
+pub struct Correlators<const ZORDER: usize> {
+    distance: u64,
+    lateral: [u64; ZORDER],
+    longitudinal: [u64; ZORDER],
+}
+
+pub fn calculate_lateral_and_longitudinal_correlator<const ZORDER: usize>(
+    experiment: &Experiment<ZORDER>,
+    d: usize,
+) -> Correlators<ZORDER> {
+    let mut res = Correlators {
+        distance: d as u64,
+        lateral: [0; ZORDER],
+        longitudinal: [0; ZORDER],
+    };
+
+    let faces_shape = experiment.sim.faces.shape();
+
+    for x in 0..faces_shape[1] {
+        for y in 0..faces_shape[2] {
+            for z in 0..faces_shape[3] {
+                for t in 0..faces_shape[4] {
+                    let anchor = Ind::<4>::new([x, y, z, t]);
+
+                    for i in 0..4 {
+                        for j in (i + 1)..4 {
+                            let plaquette_plan_index =
+                                CubicalLattice::<4, ZNLatticeTypes<4, ZORDER>>::plaquette_plane(
+                                    i, j,
+                                );
+
+                            let mut longitudinal_directions = vec![0, 1, 2, 3];
+                            longitudinal_directions.retain(|&x| x != i && x != j);
+                            let lateral_directions = [i, j];
+
+                            // LATERAL CORRELATOR
+                            let mut lateral_translations =
+                                vec![Ind::<4>::new([0, 0, 0, 0]), Ind::<4>::new([0, 0, 0, 0])];
+                            lateral_translations[0][lateral_directions[0]] = d;
+                            lateral_translations[1][lateral_directions[1]] = d;
+
+                            for d_lat in lateral_translations {
+                                let p_d = ((anchor + d_lat) % *experiment.sim.shape)
+                                    .prepend(plaquette_plan_index);
+                                let p = anchor.prepend(plaquette_plan_index);
+
+                                let faces = &experiment.sim.faces;
+                                let pp_lateral_correlator =
+                                    (ZORDER + faces[*p].data.holonomy + faces[*p_d].data.holonomy)
+                                        % ZORDER;
+
+                                res.lateral[pp_lateral_correlator] += 1;
+                            }
+
+                            // LONGITUDINAL CORRELATOR
+                            let mut longitudinal_translations =
+                                vec![Ind::<4>::new([0, 0, 0, 0]), Ind::<4>::new([0, 0, 0, 0])];
+                            longitudinal_translations[0][longitudinal_directions[0]] = d;
+                            longitudinal_translations[1][longitudinal_directions[1]] = d;
+
+                            for d_long in longitudinal_translations {
+                                let p_d = ((anchor + d_long) % *experiment.sim.shape)
+                                    .prepend(plaquette_plan_index);
+                                let p = anchor.prepend(plaquette_plan_index);
+
+                                let faces = &experiment.sim.faces;
+                                let pp_longitudinal_correlator = (ZORDER + faces[*p].data.holonomy
+                                    - faces[*p_d].data.holonomy)
+                                    % ZORDER;
+
+                                res.longitudinal[pp_longitudinal_correlator] += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return res;
+}
+
+pub fn record_lat_and_long_corr<const ZORDER: usize>(
+    experiment: &Experiment<ZORDER>,
+    rec_array_longitude: &mut Array<u64, IxDyn>,
+    rec_array_lateral: &mut Array<u64, IxDyn>,
+    rec_index: usize,
+) {
+    let d_max = experiment.sim.shape[0];
+
+    for d in 0..=d_max {
+        let correlators = calculate_lateral_and_longitudinal_correlator(experiment, d);
+        for j in 0..ZORDER {
+            rec_array_longitude[[rec_index, d, j]] = correlators.longitudinal[j];
+            rec_array_lateral[[rec_index, d, j]] = correlators.lateral[j];
+        }
+    }
+}

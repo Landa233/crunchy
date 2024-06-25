@@ -1,6 +1,6 @@
 use std::{
     fmt,
-    ops::{Add, Deref, Rem, Sub},
+    ops::{Add, Deref, DerefMut, Rem, Sub},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -80,6 +80,12 @@ impl<const N: usize> Deref for Ind<N> {
 
     fn deref(&self) -> &Self::Target {
         &self.data
+    }
+}
+
+impl<const N: usize> DerefMut for Ind<N> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data
     }
 }
 

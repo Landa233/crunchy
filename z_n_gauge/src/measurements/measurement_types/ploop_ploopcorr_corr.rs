@@ -1,8 +1,8 @@
 use std::fs;
 
 use crate::experiment::experiment::{
-    record_average_plaquette, record_correlators, record_polyakov_correlators,
-    record_polyakov_loops,
+    record_average_plaquette, record_correlators, record_lat_and_long_corr,
+    record_polyakov_correlators, record_polyakov_loops,
 };
 use crate::measurements::backup::backup_fragments::{RebootSeed, RunInfo};
 use crate::measurements::backup::backup_trait::ExecutorParameters;
@@ -28,6 +28,8 @@ pub struct PloopCorrRecordings {
     pub average_plaquette: ArrayWrapper<f32>,
     pub pp_correlators_differences: ArrayWrapper<u64>,
     pub average_plaquette_integer: ArrayWrapper<u64>,
+    pub lateral_correlators: ArrayWrapper<u64>,
+    pub longitudinal_correlators: ArrayWrapper<u64>,
 }
 
 impl BackUp for SavePloopPloopCorrCorr {
@@ -54,6 +56,8 @@ impl BackUp for SavePloopPloopCorrCorr {
         let mut average_plaquette_views = vec![];
         let mut pp_correlators_differences_views = vec![];
         let mut average_plaquette_integer_views = vec![];
+        let mut lateral_correlators_views = vec![];
+        let mut longitudinal_correlators_views = vec![];
 
         for backup in backups.iter() {
             total_recordings += backup.run_info.recordings;
@@ -83,6 +87,15 @@ impl BackUp for SavePloopPloopCorrCorr {
                     .data
                     .view(),
             );
+            lateral_correlators_views
+                .push(backup.ploop_corr_recordings.lateral_correlators.data.view());
+            longitudinal_correlators_views.push(
+                backup
+                    .ploop_corr_recordings
+                    .longitudinal_correlators
+                    .data
+                    .view(),
+            );
         }
 
         // let merged_data = ndarray::concatenate(Axis(0), &array_views).unwrap();
@@ -96,6 +109,11 @@ impl BackUp for SavePloopPloopCorrCorr {
             ndarray::concatenate(Axis(0), &pp_correlators_differences_views).unwrap();
         let merged_average_plaquette_integer =
             ndarray::concatenate(Axis(0), &average_plaquette_integer_views).unwrap();
+
+        let merged_lateral_correlators =
+            ndarray::concatenate(Axis(0), &lateral_correlators_views).unwrap();
+        let merged_longitudinal_correlators =
+            ndarray::concatenate(Axis(0), &longitudinal_correlators_views).unwrap();
 
         let mut backup = backups.pop().unwrap();
 
@@ -118,6 +136,12 @@ impl BackUp for SavePloopPloopCorrCorr {
             },
             average_plaquette_integer: ArrayWrapper {
                 data: merged_average_plaquette_integer,
+            },
+            lateral_correlators: ArrayWrapper {
+                data: merged_lateral_correlators,
+            },
+            longitudinal_correlators: ArrayWrapper {
+                data: merged_longitudinal_correlators,
             },
         };
         backup.run_info.backup_number = 1;
@@ -179,6 +203,11 @@ impl BackUp for SavePloopPloopCorrCorr {
             let mut average_plaquette_integer: Array<u64, IxDyn> =
                 Array::zeros(average_integer_plaquette_shape).into_dyn();
 
+            let mut lateral_correlators: Array<u64, IxDyn> =
+                Array::zeros(corr_differences_shape).into_dyn();
+            let mut longitudinal_correlators: Array<u64, IxDyn> =
+                Array::zeros(corr_differences_shape).into_dyn();
+
             for i in 0..recordings {
                 record_correlators(
                     &experiment,
@@ -191,6 +220,13 @@ impl BackUp for SavePloopPloopCorrCorr {
                     &experiment,
                     &mut average_plaquette_recordings,
                     &mut average_plaquette_integer,
+                    i as usize,
+                );
+
+                record_lat_and_long_corr(
+                    &experiment,
+                    &mut longitudinal_correlators,
+                    &mut lateral_correlators,
                     i as usize,
                 );
 
@@ -240,6 +276,12 @@ impl BackUp for SavePloopPloopCorrCorr {
                     },
                     average_plaquette_integer: ArrayWrapper {
                         data: average_plaquette_integer,
+                    },
+                    lateral_correlators: ArrayWrapper {
+                        data: lateral_correlators,
+                    },
+                    longitudinal_correlators: ArrayWrapper {
+                        data: longitudinal_correlators,
                     },
                 },
                 run_info,

@@ -396,7 +396,7 @@ where
         res
     }
 
-    fn plaquette_plane(i: usize, j: usize) -> usize {
+    pub fn plaquette_plane(i: usize, j: usize) -> usize {
         if i >= j {
             panic!("The set ({}, {}) is not ordered", i, j)
         }
