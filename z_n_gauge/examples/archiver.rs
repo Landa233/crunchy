@@ -3,5 +3,5 @@ use z_n_gauge::measurements::{
 };
 
 fn main() {
-    archive::<SavePloopPloopCorrCorr, _>("_recordings/2024-06-23--20-55-08_with-all-integers");
+    archive::<SavePloopPloopCorrCorr, _>("_recordings/2024-06-27--11-52-35_split-correlators");
 }
